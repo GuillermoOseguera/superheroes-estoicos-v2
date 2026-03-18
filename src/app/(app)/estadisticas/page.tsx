@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { supabase, type Profile, type GameResult, resetHeroProgress } from "@/lib/supabase";
 import { motion } from "framer-motion";
-import { Trash2, AlertTriangle, Clock, Target, XCircle, RotateCcw } from "lucide-react";
+import { Trash2, AlertTriangle, Clock, Target, XCircle, RotateCcw, BookOpen, Trophy, Gamepad } from "lucide-react";
 import Image from "next/image";
 import { toast } from "sonner";
 import { useProfile } from "@/lib/profile-store";
@@ -14,6 +14,9 @@ interface HeroStats {
   errores: number;
   totalSesiones: number;
   tiempoEstimadoMinutos: number; 
+  booksRead: number;
+  mostPlayedGame: string;
+  unlockedAchievementsCount: number;
 }
 
 // Mapa temporal para saber la base image de los 3 héroes principales (igual que en page.tsx)
@@ -23,14 +26,43 @@ const HERO_IMAGES: Record<string, string> = {
   "00000000-0000-0000-0000-000000000003": "/images/avatars/marco_base.png",
 };
 
+const GAME_NAMES: Record<string, string> = {
+  "dos_cajas": "Las Dos Cajas",
+  "semaforo_emocional": "Semáforo Emocional",
+  "defensor_mente": "Defensor de la Mente",
+};
+
 export default function EstadisticasPage() {
   const [stats, setStats] = useState<HeroStats[]>([]);
   const [loading, setLoading] = useState(true);
   
   // Para la doble confirmación
   const [heroToReset, setHeroToReset] = useState<string | null>(null);
-  
+
+  // Para ver registros emocionales
+  const [selectedLogs, setSelectedLogs] = useState<any[] | null>(null);
+  const [viewingProfileName, setViewingProfileName] = useState("");
+
   const { activeProfile, refreshProfile } = useProfile();
+
+  const handleViewLogs = async (profileId: string) => {
+    try {
+      const { data, error } = await supabase
+        .from("emotional_logs")
+        .select("*")
+        .eq("user_id", profileId)
+        .order("created_at", { ascending: false });
+      
+      if (error) throw error;
+      
+      const p = stats.find(s => s.profile.id === profileId);
+      setViewingProfileName(p?.profile.name || "Héroe");
+      setSelectedLogs(data || []);
+    } catch (e) {
+      console.error(e);
+      toast.error("No se pudieron cargar los registros.");
+    }
+  };
 
   useEffect(() => {
     loadStats();
@@ -41,6 +73,7 @@ export default function EstadisticasPage() {
     try {
       const { data: profilesData } = await supabase.from("profiles").select("*").order("name");
       const { data: resultsData } = await supabase.from("game_results").select("*");
+      const { data: achievementsData } = await supabase.from("unlocked_achievements").select("*");
 
       if (profilesData && resultsData) {
         const statsList: HeroStats[] = profilesData.map((profile: Profile) => {
@@ -52,12 +85,47 @@ export default function EstadisticasPage() {
           // Estimación temporal: 2 minutos por sesión/desafío
           const tiempoEstimadoMinutos = totalSesiones * 2; 
 
+          // 1. Libros Leídos (Ratings en localStorage)
+          let booksRead = 0;
+          try {
+            const savedRatings = localStorage.getItem(`estoico_stories_ratings_${profile.id}`);
+            if (savedRatings) {
+              const ratingsObj = JSON.parse(savedRatings);
+              booksRead = Object.keys(ratingsObj).length;
+            }
+          } catch (e) {
+            console.error("Error reading books ratings", e);
+          }
+
+          // 2. Juego más jugado
+          const gameCounts: Record<string, number> = {};
+          userResults.forEach((r) => {
+            const gid = r.game_id || "desconocido";
+            gameCounts[gid] = (gameCounts[gid] || 0) + 1;
+          });
+          let mostPlayedGameId = "Ninguno";
+          let maxCount = 0;
+          for (const [gid, count] of Object.entries(gameCounts)) {
+            if (count > maxCount) {
+              maxCount = count;
+              mostPlayedGameId = gid;
+            }
+          }
+          const mostPlayedGame = GAME_NAMES[mostPlayedGameId] || mostPlayedGameId;
+
+          // 3. Logros
+          const userAchievements = achievementsData ? achievementsData.filter((a: any) => a.profile_id === profile.id) : [];
+          const unlockedAchievementsCount = userAchievements.length;
+
           return {
             profile,
             aciertos,
             errores,
             totalSesiones,
-            tiempoEstimadoMinutos
+            tiempoEstimadoMinutos,
+            booksRead,
+            mostPlayedGame,
+            unlockedAchievementsCount
           };
         });
 
@@ -144,8 +212,8 @@ export default function EstadisticasPage() {
                    Nivel {stat.profile.level} - {stat.profile.total_xp} XP
                  </p>
 
-                 {/* Métricas */}
-                 <div className="w-full space-y-3 mb-8">
+                  {/* Métricas */}
+                  <div className="w-full space-y-3 mb-6">
                     <div className="flex items-center justify-between rounded-lg bg-white/50 p-3 shadow-sm border border-slate-100">
                       <div className="flex items-center gap-2 text-slate-600">
                         <Clock size={16} />
@@ -169,7 +237,44 @@ export default function EstadisticasPage() {
                       </div>
                       <span className="font-bold text-red-800">{stat.errores}</span>
                     </div>
-                 </div>
+
+                    {/* NUEVAS MÉTRICAS */}
+                    <div className="flex items-center justify-between rounded-lg bg-blue-50/50 p-3 shadow-sm border border-blue-100">
+                      <div className="flex items-center gap-2 text-blue-700">
+                        <BookOpen size={16} />
+                        <span className="text-sm font-medium">Libros leídos</span>
+                      </div>
+                      <span className="font-bold text-blue-800">{stat.booksRead}</span>
+                    </div>
+
+                    <div className="flex items-center justify-between rounded-lg bg-amber-50/50 p-3 shadow-sm border border-amber-100">
+                      <div className="flex items-center gap-2 text-amber-700">
+                        <Trophy size={16} />
+                        <span className="text-sm font-medium">Logros</span>
+                      </div>
+                      <span className="font-bold text-amber-800">{stat.unlockedAchievementsCount}</span>
+                    </div>
+
+                    <div className="flex items-center justify-between rounded-lg bg-purple-50/50 p-3 shadow-sm border border-purple-100">
+                      <div className="flex items-center gap-2 text-purple-700">
+                        <Gamepad size={16} />
+                        <span className="text-sm font-medium">Más jugado</span>
+                      </div>
+                      <span className="font-bold text-purple-800 text-xs text-right truncate max-w-[120px]">
+                        {stat.mostPlayedGame}
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* Botón Semáforo Emocional */}
+                  <div className="w-full mb-4">
+                    <button
+                      onClick={() => handleViewLogs(stat.profile.id)}
+                      className="flex w-full items-center justify-center gap-2 rounded-lg bg-slate-800 text-white py-2.5 text-sm font-bold shadow-md hover:bg-slate-700 transition"
+                    >
+                      🚦 Ver Mis Registros Emocionales
+                    </button>
+                  </div>
 
                  {/* Zona de Peligro (Reset) */}
                  <div className="mt-auto w-full border-t border-slate-200/60 pt-4">
@@ -205,6 +310,65 @@ export default function EstadisticasPage() {
 
                </motion.div>
             ))}
+          </div>
+        )}
+        {/* Modal para Registros Emocionales */}
+        {selectedLogs !== null && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+            <motion.div 
+              initial={{ scale: 0.9, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              className="bg-white rounded-2xl p-6 max-w-lg w-full max-h-[80vh] overflow-y-auto shadow-2xl relative border border-slate-200"
+            >
+              <div className="sticky top-0 bg-white pb-4 mb-4 border-b border-slate-100 flex justify-between items-center">
+                <h3 className="font-display text-xl font-bold text-slate-800">
+                  Registros Emocionales de {viewingProfileName}
+                </h3>
+                <button 
+                  onClick={() => setSelectedLogs(null)}
+                  className="rounded-full p-1 hover:bg-slate-100 transition-colors text-slate-500"
+                >
+                  <XCircle size={24} />
+                </button>
+              </div>
+
+              {selectedLogs.length === 0 ? (
+                <div className="text-center py-12">
+                  <span className="text-4xl">🍃</span>
+                  <p className="text-slate-400 font-medium mt-3">Aún no hay registros en la bitácora.</p>
+                </div>
+              ) : (
+                <div className="space-y-4">
+                  {selectedLogs.map((log: any, idx: number) => {
+                    const EMOTIONS_MAP: Record<string, string> = {
+                      angry: "😡 Enojo", sad: "😢 Tristeza", anxious: "😰 Ansiedad", 
+                      frustrated: "😔 Frustración", scared: "😨 Miedo", neutral: "😐 Calma"
+                    };
+                    return (
+                      <div key={log.id || idx} className="p-4 rounded-xl bg-slate-50 border border-slate-200 shadow-sm">
+                        <div className="flex justify-between items-center mb-2">
+                          <span className="font-bold text-slate-800 text-sm">
+                            {EMOTIONS_MAP[log.emotion] || log.emotion}
+                          </span>
+                          <span className="text-xs font-bold text-slate-400">
+                            {log.created_at ? new Date(log.created_at).toLocaleDateString() : 'Desconocido'}
+                          </span>
+                        </div>
+                        <div className="space-y-1.5 text-xs text-slate-600">
+                          <p>🎯 <strong className="text-slate-700">Causa:</strong> {log.trigger_reason}</p>
+                          <p>⚖️ <strong className="text-slate-700">Dicotomía:</strong> {log.can_control ? "Bajo mi control" : "Fuera de mi control"}</p>
+                          <p>🌱 <strong className="text-slate-700">Virtud:</strong> {log.virtue_selected || "Ninguna"}</p>
+                          <div className="mt-2 p-2 rounded bg-white border border-slate-100">
+                            <strong className="text-slate-700">Plan de Acción:</strong>
+                            <p className="text-slate-600 italic mt-0.5">{log.action_plan}</p>
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </motion.div>
           </div>
         )}
       </div>

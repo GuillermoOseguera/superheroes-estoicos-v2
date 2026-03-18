@@ -38,14 +38,8 @@ export default function LogrosPage() {
         return newSet;
       });
 
-      // Play Animation
-      triggerAchievementAnimation();
-      
-      const achievement = ALL_ACHIEVEMENTS.find(a => a.id === achievementId);
-      toast.success(`¡Logro Desbloqueado: ${achievement?.label}!`, {
-        description: "Continúa tu camino estoico.",
-        icon: "🏆"
-      });
+      // El overlay global CelebrationOverlay se dispara automáticamente 
+      // vía el evento "achievement_unlocked" que ahora emite unlockAchievement().
 
     } catch (error) {
       console.error(error);

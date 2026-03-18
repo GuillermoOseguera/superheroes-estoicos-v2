@@ -180,12 +180,17 @@ export async function unlockAchievement(
   userId: string,
   achievementId: string
 ): Promise<void> {
-  await supabase
+  const { error } = await supabase
     .from("unlocked_achievements")
     .upsert(
       { user_id: userId, achievement_id: achievementId },
       { onConflict: "user_id,achievement_id" }
     );
+
+  if (!error && typeof window !== "undefined") {
+    const event = new CustomEvent("achievement_unlocked", { detail: { achievementId } });
+    window.dispatchEvent(event);
+  }
 }
 
 // ─── DB Reset ───────────────────────────────────────────────────────────────

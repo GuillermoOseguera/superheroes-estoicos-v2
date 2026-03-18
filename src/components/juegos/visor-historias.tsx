@@ -20,11 +20,6 @@ function shuffleArray<T>(arr: T[]): T[] {
   return shuffled;
 }
 
-// LocalStorage keys
-const LS_READ_KEY = "estoico_stories_read";
-const LS_RATINGS_KEY = "estoico_stories_ratings";
-const LS_TEMPERANCE_COUNTER = "estoico_stories_temperance_counter";
-
 export function VisorHistorias() {
   const { activeProfile, refreshProfile } = useProfile();
   const [currentIndex, setCurrentIndex] = useState(0);
@@ -39,33 +34,46 @@ export function VisorHistorias() {
   // Shuffled stories - memoized so they stay consistent during the session
   const shuffledStories = useMemo(() => shuffleArray(STORIES), []);
 
-  // Load from localStorage on mount
+  // Dynamic LocalStorage keys using profile ID
+  const LS_READ_KEY = useMemo(() => `estoico_stories_read_${activeProfile?.id || "anon"}`, [activeProfile?.id]);
+  const LS_RATINGS_KEY = useMemo(() => `estoico_stories_ratings_${activeProfile?.id || "anon"}`, [activeProfile?.id]);
+  const LS_TEMPERANCE_COUNTER = useMemo(() => `estoico_stories_temperance_counter_${activeProfile?.id || "anon"}`, [activeProfile?.id]);
+
+  // Load from localStorage on mount or profile change
   useEffect(() => {
+    if (!activeProfile) return;
     try {
       const savedRead = localStorage.getItem(LS_READ_KEY);
       if (savedRead) setReadIds(new Set(JSON.parse(savedRead)));
+      else setReadIds(new Set());
 
       const savedRatings = localStorage.getItem(LS_RATINGS_KEY);
       if (savedRatings) setRatings(JSON.parse(savedRatings));
+      else setRatings({});
 
       const savedCounter = localStorage.getItem(LS_TEMPERANCE_COUNTER);
       if (savedCounter) setTemperanceCounter(parseInt(savedCounter, 10));
+      else setTemperanceCounter(0);
     } catch (e) {
       console.error("Error loading story progress", e);
     }
-  }, []);
+  }, [activeProfile, LS_READ_KEY, LS_RATINGS_KEY, LS_TEMPERANCE_COUNTER]);
 
   // Save read IDs
   const persistRead = useCallback((newSet: Set<string>) => {
     setReadIds(newSet);
-    localStorage.setItem(LS_READ_KEY, JSON.stringify([...newSet]));
-  }, []);
+    if (activeProfile) {
+      localStorage.setItem(LS_READ_KEY, JSON.stringify([...newSet]));
+    }
+  }, [activeProfile, LS_READ_KEY]);
 
   // Save ratings
   const persistRatings = useCallback((newRatings: Record<string, number>) => {
     setRatings(newRatings);
-    localStorage.setItem(LS_RATINGS_KEY, JSON.stringify(newRatings));
-  }, []);
+    if (activeProfile) {
+      localStorage.setItem(LS_RATINGS_KEY, JSON.stringify(newRatings));
+    }
+  }, [activeProfile, LS_RATINGS_KEY]);
 
   // Mark as read + check temperance reward
   const markAsRead = useCallback(async (storyId: string) => {
@@ -78,7 +86,9 @@ export function VisorHistorias() {
     // Increment temperance counter
     const newCounter = temperanceCounter + 1;
     setTemperanceCounter(newCounter);
-    localStorage.setItem(LS_TEMPERANCE_COUNTER, String(newCounter));
+    if (activeProfile) {
+      localStorage.setItem(LS_TEMPERANCE_COUNTER, String(newCounter));
+    }
 
     // Every 4 stories -> reward Templanza
     if (newCounter % 4 === 0 && activeProfile && !awardingXP) {
@@ -96,7 +106,7 @@ export function VisorHistorias() {
         setAwardingXP(false);
       }
     }
-  }, [readIds, temperanceCounter, activeProfile, awardingXP, persistRead, refreshProfile]);
+  }, [readIds, temperanceCounter, activeProfile, awardingXP, persistRead, refreshProfile, LS_TEMPERANCE_COUNTER]);
 
   // Rate a story
   const rateStory = useCallback((storyId: string, rating: number) => {
@@ -110,11 +120,6 @@ export function VisorHistorias() {
   }, [ratings, readIds, persistRatings, markAsRead]);
 
   const handleNext = () => {
-    const story = shuffledStories[currentIndex];
-    // Auto-mark as read when moving to next
-    if (!readIds.has(story.id)) {
-      markAsRead(story.id);
-    }
     setCurrentIndex((prev) => (prev + 1) % shuffledStories.length);
     setHoverStar(0);
   };
