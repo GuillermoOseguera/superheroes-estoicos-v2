@@ -78,8 +78,8 @@ export default function EstadisticasPage() {
       if (profilesData && resultsData) {
         const statsList: HeroStats[] = profilesData.map((profile: Profile) => {
           const userResults = resultsData.filter((r: GameResult) => r.user_id === profile.id);
-          const aciertos = userResults.filter((r) => r.xp_earned > 0).length;
-          const errores = userResults.filter((r) => r.xp_earned <= 0).length;
+          const aciertos = userResults.filter((r: GameResult) => r.xp_earned > 0).length;
+          const errores = userResults.filter((r: GameResult) => r.xp_earned <= 0).length;
           const totalSesiones = userResults.length;
           
           // Estimación temporal: 2 minutos por sesión/desafío
@@ -99,7 +99,7 @@ export default function EstadisticasPage() {
 
           // 2. Juego más jugado
           const gameCounts: Record<string, number> = {};
-          userResults.forEach((r) => {
+          userResults.forEach((r: GameResult) => {
             const gid = r.game_id || "desconocido";
             gameCounts[gid] = (gameCounts[gid] || 0) + 1;
           });
