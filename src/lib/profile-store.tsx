@@ -57,7 +57,7 @@ export function ProfileProvider({ children }: { children: React.ReactNode }) {
         .select("*")
         .eq("id", savedId)
         .single()
-        .then(({ data }) => {
+        .then(({ data }: any) => {
           if (data) setActiveProfileState(data as Profile);
         });
     }

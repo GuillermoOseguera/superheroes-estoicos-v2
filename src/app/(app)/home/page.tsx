@@ -146,7 +146,7 @@ export default function HomePage() {
       .select("*")
       .eq("user_id", activeProfile.id)
       .single()
-      .then(({ data }) => {
+      .then(({ data }: any) => {
         if (data) setVirtues(data as UserVirtues);
       });
 
@@ -158,7 +158,7 @@ export default function HomePage() {
       .eq("user_id", activeProfile.id)
       .eq("mission_date", today)
       .eq("is_completed", true)
-      .then(({ data }) => {
+      .then(({ data }: any) => {
         setCompletedToday(data?.length ?? 0);
       });
 
@@ -169,9 +169,9 @@ export default function HomePage() {
       .eq("user_id", activeProfile.id)
       .order("unlocked_at", { ascending: false })
       .limit(3)
-      .then(({ data }) => {
+      .then(({ data }: any) => {
         if (data && data.length > 0) {
-          const mapped = data.map((d) => ALL_ACHIEVEMENTS.find(a => a.id === d.achievement_id)).filter(Boolean) as Achievement[];
+          const mapped = data.map((d: any) => ALL_ACHIEVEMENTS.find(a => a.id === d.achievement_id)).filter(Boolean) as Achievement[];
           setRecentLogros(mapped);
           setHasNoLogros(false);
         } else {

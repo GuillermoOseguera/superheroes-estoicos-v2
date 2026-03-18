@@ -21,8 +21,8 @@ export default function LogrosPage() {
       .from("unlocked_achievements")
       .select("achievement_id")
       .eq("user_id", activeProfile.id)
-      .then(({ data }) => {
-        if (data) setUnlockedIds(new Set(data.map((r) => r.achievement_id)));
+      .then(({ data }: any) => {
+        if (data) setUnlockedIds(new Set(data.map((r: any) => r.achievement_id)));
       });
   }, [activeProfile?.id]);
 

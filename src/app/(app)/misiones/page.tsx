@@ -68,10 +68,10 @@ export default function MisionesPage() {
       .eq("user_id", activeProfile.id)
       .eq("mission_date", today)
       .eq("is_completed", true)
-      .then(({ data }) => {
+      .then(({ data }: any) => {
         if (data) {
           const done: Record<string, boolean> = {};
-          data.forEach((r) => { done[r.mission_id] = true; });
+          data.forEach((r: any) => { done[r.mission_id] = true; });
           setCompletadas(done);
         }
       });
