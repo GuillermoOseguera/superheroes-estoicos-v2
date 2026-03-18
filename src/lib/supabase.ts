@@ -1,9 +1,40 @@
 import { createClient } from "@supabase/supabase-js";
 
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || "https://placeholder.supabase.co";
-const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.placeholder";
+let supabaseInstance: any = null;
 
-export const supabase = createClient(supabaseUrl, supabaseAnonKey);
+const getClient = () => {
+  if (!supabaseInstance) {
+    const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
+    const key = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+
+    if (!url || !key) {
+      if (typeof window === "undefined") {
+        // En el servidor (fase de compilación build/static), devolvemos un Mock 
+        // para que Next.js pueda crear las páginas estáticas sin crashear.
+        return new Proxy({} as any, {
+          get() {
+            return () => ({
+              select: () => Promise.resolve({ data: [], error: null }),
+              single: () => Promise.resolve({ data: null, error: null }),
+              order: () => ({ select: () => Promise.resolve({ data: [] }) }), // Cadena básica
+            });
+          }
+        });
+      }
+      throw new Error("Configuración de Supabase faltante o nula.");
+    }
+    supabaseInstance = createClient(url, key);
+  }
+  return supabaseInstance;
+};
+
+// Proxy para evaluar las llamadas a Supabase de forma perezosa en tiempo de ejecución (Runtime)
+export const supabase = new Proxy({} as any, {
+  get(target, prop) {
+    const client = getClient();
+    return (client as any)[prop];
+  }
+});
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
