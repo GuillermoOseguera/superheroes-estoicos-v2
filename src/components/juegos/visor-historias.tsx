@@ -1,24 +1,133 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect, useMemo, useCallback } from "react";
 import Image from "next/image";
 import { motion, AnimatePresence } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { STORIES } from "@/lib/data-stories";
-import { ChevronRight, ChevronLeft, BookOpen } from "lucide-react";
+import { ChevronRight, ChevronLeft, BookOpen, Star, CheckCircle2 } from "lucide-react";
+import { useProfile } from "@/lib/profile-store";
+import { addVirtueXP } from "@/lib/supabase";
+import { toast } from "sonner";
+
+// Shuffle helper (Fisher-Yates)
+function shuffleArray<T>(arr: T[]): T[] {
+  const shuffled = [...arr];
+  for (let i = shuffled.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+  }
+  return shuffled;
+}
+
+// LocalStorage keys
+const LS_READ_KEY = "estoico_stories_read";
+const LS_RATINGS_KEY = "estoico_stories_ratings";
+const LS_TEMPERANCE_COUNTER = "estoico_stories_temperance_counter";
 
 export function VisorHistorias() {
+  const { activeProfile, refreshProfile } = useProfile();
   const [currentIndex, setCurrentIndex] = useState(0);
+  
+  // Persist read/ratings in localStorage
+  const [readIds, setReadIds] = useState<Set<string>>(new Set());
+  const [ratings, setRatings] = useState<Record<string, number>>({});
+  const [temperanceCounter, setTemperanceCounter] = useState(0);
+  const [hoverStar, setHoverStar] = useState(0);
+  const [awardingXP, setAwardingXP] = useState(false);
+
+  // Shuffled stories - memoized so they stay consistent during the session
+  const shuffledStories = useMemo(() => shuffleArray(STORIES), []);
+
+  // Load from localStorage on mount
+  useEffect(() => {
+    try {
+      const savedRead = localStorage.getItem(LS_READ_KEY);
+      if (savedRead) setReadIds(new Set(JSON.parse(savedRead)));
+
+      const savedRatings = localStorage.getItem(LS_RATINGS_KEY);
+      if (savedRatings) setRatings(JSON.parse(savedRatings));
+
+      const savedCounter = localStorage.getItem(LS_TEMPERANCE_COUNTER);
+      if (savedCounter) setTemperanceCounter(parseInt(savedCounter, 10));
+    } catch (e) {
+      console.error("Error loading story progress", e);
+    }
+  }, []);
+
+  // Save read IDs
+  const persistRead = useCallback((newSet: Set<string>) => {
+    setReadIds(newSet);
+    localStorage.setItem(LS_READ_KEY, JSON.stringify([...newSet]));
+  }, []);
+
+  // Save ratings
+  const persistRatings = useCallback((newRatings: Record<string, number>) => {
+    setRatings(newRatings);
+    localStorage.setItem(LS_RATINGS_KEY, JSON.stringify(newRatings));
+  }, []);
+
+  // Mark as read + check temperance reward
+  const markAsRead = useCallback(async (storyId: string) => {
+    if (readIds.has(storyId)) return;
+
+    const newSet = new Set(readIds);
+    newSet.add(storyId);
+    persistRead(newSet);
+
+    // Increment temperance counter
+    const newCounter = temperanceCounter + 1;
+    setTemperanceCounter(newCounter);
+    localStorage.setItem(LS_TEMPERANCE_COUNTER, String(newCounter));
+
+    // Every 4 stories -> reward Templanza
+    if (newCounter % 4 === 0 && activeProfile && !awardingXP) {
+      setAwardingXP(true);
+      try {
+        await addVirtueXP(activeProfile.id, "temperance", 20);
+        await refreshProfile();
+        toast.success("¡+20 Templanza por leer 4 historias!", {
+          description: "La sabiduría crece con cada historia. ¡Sigue leyendo!",
+          icon: "📖",
+        });
+      } catch (err) {
+        console.error(err);
+      } finally {
+        setAwardingXP(false);
+      }
+    }
+  }, [readIds, temperanceCounter, activeProfile, awardingXP, persistRead, refreshProfile]);
+
+  // Rate a story
+  const rateStory = useCallback((storyId: string, rating: number) => {
+    const newRatings = { ...ratings, [storyId]: rating };
+    persistRatings(newRatings);
+
+    // Also mark as read when rating
+    if (!readIds.has(storyId)) {
+      markAsRead(storyId);
+    }
+  }, [ratings, readIds, persistRatings, markAsRead]);
 
   const handleNext = () => {
-    setCurrentIndex((prev) => (prev + 1) % STORIES.length);
+    const story = shuffledStories[currentIndex];
+    // Auto-mark as read when moving to next
+    if (!readIds.has(story.id)) {
+      markAsRead(story.id);
+    }
+    setCurrentIndex((prev) => (prev + 1) % shuffledStories.length);
+    setHoverStar(0);
   };
 
   const handlePrev = () => {
-    setCurrentIndex((prev) => (prev - 1 + STORIES.length) % STORIES.length);
+    setCurrentIndex((prev) => (prev - 1 + shuffledStories.length) % shuffledStories.length);
+    setHoverStar(0);
   };
 
-  const story = STORIES[currentIndex];
+  const story = shuffledStories[currentIndex];
+  const isRead = readIds.has(story.id);
+  const currentRating = ratings[story.id] || 0;
+  const totalRead = readIds.size;
 
   const colorVariants: Record<string, string> = {
     cyan: "from-cyan-500 to-blue-500 dark:from-cyan-600 dark:to-blue-600",
@@ -28,9 +137,17 @@ export function VisorHistorias() {
     red: "from-red-400 to-red-600 dark:from-red-500 dark:to-red-700",
     sky: "from-sky-400 to-blue-500 dark:from-sky-500 dark:to-blue-600",
     emerald: "from-emerald-400 to-green-500 dark:from-emerald-500 dark:to-green-600",
+    indigo: "from-indigo-400 to-indigo-600 dark:from-indigo-500 dark:to-indigo-700",
+    rose: "from-rose-400 to-pink-500 dark:from-rose-500 dark:to-pink-600",
+    fuchsia: "from-fuchsia-400 to-purple-500 dark:from-fuchsia-500 dark:to-purple-600",
+    orange: "from-orange-400 to-amber-500 dark:from-orange-500 dark:to-amber-600",
+    purple: "from-purple-400 to-violet-500 dark:from-purple-500 dark:to-violet-600",
   };
 
   const bgGradient = colorVariants[story.colorScheme] || colorVariants["cyan"];
+
+  // Progress info
+  const nextRewardIn = 4 - (temperanceCounter % 4);
 
   return (
     <section className="rounded-2xl bg-white p-6 shadow-lg md:p-8 dark:bg-zinc-900">
@@ -40,19 +157,51 @@ export function VisorHistorias() {
           Historias de Héroes Legendarios 📖
         </h2>
       </div>
-      <p className="mb-8 text-center text-lg text-zinc-700 dark:text-zinc-300">
+      <p className="mb-4 text-center text-lg text-zinc-700 dark:text-zinc-300">
         Descubre cómo los antiguos (¡y tú mismo!) usaron sus superpoderes
         para vencer obstáculos.
       </p>
 
+      {/* Progress bar */}
+      <div className="mb-8 mx-auto max-w-lg">
+        <div className="flex justify-between items-center mb-2">
+          <span className="text-xs font-semibold text-zinc-500 dark:text-zinc-400">
+            📚 {totalRead}/{STORIES.length} leídas
+          </span>
+          <span className="text-xs font-semibold text-green-600 dark:text-green-400">
+            🏛️ +Templanza en {nextRewardIn} {nextRewardIn === 1 ? "historia" : "historias"}
+          </span>
+        </div>
+        <div className="h-2.5 w-full rounded-full bg-zinc-200 dark:bg-zinc-700 overflow-hidden">
+          <motion.div
+            className="h-full rounded-full bg-gradient-to-r from-green-400 to-emerald-500"
+            initial={{ width: 0 }}
+            animate={{ width: `${(totalRead / STORIES.length) * 100}%` }}
+            transition={{ duration: 0.5 }}
+          />
+        </div>
+      </div>
+
       <div className="relative mx-auto max-w-3xl overflow-hidden rounded-2xl shadow-2xl">
         {/* Fondo decorativo superior */}
-        <div className={`h-24 w-full bg-gradient-to-r ${bgGradient} p-6 pb-12 transition-colors duration-500`} />
+        <div className={`h-40 w-full bg-gradient-to-r ${bgGradient} p-6 pb-16 transition-colors duration-500 relative`}>
+          {/* Read badge */}
+          {isRead && (
+            <motion.div
+              initial={{ scale: 0 }}
+              animate={{ scale: 1 }}
+              className="absolute top-4 right-4 flex items-center gap-1.5 bg-white/90 dark:bg-zinc-900/90 rounded-full px-3 py-1.5 shadow-md"
+            >
+              <CheckCircle2 className="h-4 w-4 text-green-500" />
+              <span className="text-xs font-bold text-green-600 dark:text-green-400">LEÍDA</span>
+            </motion.div>
+          )}
+        </div>
         
-        <div className="relative -mt-8 rounded-t-3xl bg-white p-6 pt-8 dark:bg-zinc-950 md:p-10 md:pt-12">
+        <div className="relative -mt-8 rounded-t-3xl bg-white p-6 pt-28 dark:bg-zinc-950 md:p-10 md:pt-32">
            {/* Imagen / Icono ilustrativo centralizado */}
-           <div className="absolute left-1/2 top-0 -translate-x-1/2 -translate-y-1/2 rounded-full border-4 border-white bg-white p-2 shadow-md dark:border-zinc-950 dark:bg-zinc-950">
-             <div className="relative h-16 w-16 md:h-20 md:w-20">
+           <div className="absolute left-1/2 top-0 -translate-x-1/2 -translate-y-1/2 rounded-full border-4 border-white bg-white p-3 shadow-lg dark:border-zinc-950 dark:bg-zinc-950">
+             <div className="relative h-36 w-36 md:h-44 md:w-44">
                <Image
                  src="/cuentos.png" 
                  alt="Cuentos Estoicos"
@@ -91,6 +240,46 @@ export function VisorHistorias() {
                   &quot;{story.lesson}&quot;
                 </p>
               </div>
+
+              {/* Star Rating */}
+              <div className="mt-6 flex flex-col items-center gap-2">
+                <p className="text-sm font-semibold text-zinc-500 dark:text-zinc-400">
+                  ¿Qué te pareció esta historia?
+                </p>
+                <div className="flex gap-1">
+                  {[1, 2, 3, 4, 5].map((star) => {
+                    const isFilled = star <= (hoverStar || currentRating);
+                    return (
+                      <motion.button
+                        key={star}
+                        onClick={() => rateStory(story.id, star)}
+                        onMouseEnter={() => setHoverStar(star)}
+                        onMouseLeave={() => setHoverStar(0)}
+                        whileHover={{ scale: 1.2 }}
+                        whileTap={{ scale: 0.9 }}
+                        style={{ background: "none", border: "none", cursor: "pointer", padding: 4 }}
+                      >
+                        <Star
+                          className={`h-8 w-8 transition-colors duration-150 ${
+                            isFilled
+                              ? "fill-yellow-400 text-yellow-400"
+                              : "fill-transparent text-zinc-300 dark:text-zinc-600"
+                          }`}
+                        />
+                      </motion.button>
+                    );
+                  })}
+                </div>
+                {currentRating > 0 && (
+                  <motion.span
+                    initial={{ opacity: 0, y: 5 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    className="text-xs font-medium text-yellow-600 dark:text-yellow-400"
+                  >
+                    Tu calificación: {currentRating}/5 ⭐
+                  </motion.span>
+                )}
+              </div>
             </motion.div>
           </AnimatePresence>
         </div>
@@ -101,7 +290,7 @@ export function VisorHistorias() {
             <ChevronLeft className="h-4 w-4" /> Anterior
           </Button>
           <span className="text-sm font-medium text-zinc-500 dark:text-zinc-400">
-            Historia {currentIndex + 1} de {STORIES.length}
+            Historia {currentIndex + 1} de {shuffledStories.length}
           </span>
           <Button variant="outline" size="sm" onClick={handleNext} className="gap-2">
             Siguiente <ChevronRight className="h-4 w-4" />

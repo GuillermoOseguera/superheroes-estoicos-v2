@@ -5,6 +5,9 @@ import Image from "next/image";
 import { motion, AnimatePresence } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { getRandomVirtueChallenge, type VirtueChallenge, type Virtue } from "@/lib/data-virtues";
+import { useProfile } from "@/lib/profile-store";
+import { addGameXP, addVirtueXP } from "@/lib/supabase";
+import { toast } from "sonner";
 
 const VIRTUE_ASSETS: Record<Virtue, { src: string; bgColor: string; hoverBg: string; textColor: string; label: string }> = {
   sabiduria: {
@@ -41,6 +44,8 @@ export function DesafioVirtudes() {
   const [challenge, setChallenge] = useState<VirtueChallenge | null>(null);
   const [selectedVirtue, setSelectedVirtue] = useState<Virtue | null>(null);
   const [feedback, setFeedback] = useState<{ isCorrect: boolean; message: string } | null>(null);
+  const [loadingAction, setLoadingAction] = useState(false);
+  const { activeProfile, refreshProfile } = useProfile();
 
   useEffect(() => {
     loadNewChallenge();
@@ -52,9 +57,10 @@ export function DesafioVirtudes() {
     setFeedback(null);
   };
 
-  const handleVirtueSelect = (virtue: Virtue) => {
-    if (feedback || !challenge) return; // Ya respondió
+  const handleVirtueSelect = async (virtue: Virtue) => {
+    if (feedback || !challenge || loadingAction || !activeProfile) return; // Ya respondió o está cargando
 
+    setLoadingAction(true);
     setSelectedVirtue(virtue);
     const isCorrect = virtue === challenge.correctVirtue;
     
@@ -64,6 +70,40 @@ export function DesafioVirtudes() {
         ? challenge.feedback 
         : `Hmm, esa no es la mejor para esta situación. La correcta era la ${VIRTUE_ASSETS[challenge.correctVirtue].label}.`
     });
+
+    try {
+      const xpDelta = isCorrect ? 50 : -20;
+      await addGameXP(activeProfile.id, "desafio_virtudes", isCorrect ? 1 : 0, xpDelta);
+
+      if (isCorrect) {
+        const virtueMap: Record<Virtue, "wisdom" | "courage" | "justice" | "temperance"> = {
+          sabiduria: "wisdom",
+          coraje: "courage",
+          justicia: "justice",
+          templanza: "temperance"
+        };
+        await addVirtueXP(activeProfile.id, virtueMap[virtue], 10);
+      }
+
+      await refreshProfile(); // Recarga la UI del header para que se vea el cambio de nivel/xp
+
+      if (isCorrect) {
+        toast.success(`¡Respuesta Correcta!`, { 
+          description: `+50 XP ganados y +10 en ${VIRTUE_ASSETS[virtue].label}.`,
+          icon: '✨' 
+        });
+      } else {
+        toast.error(`Respuesta Incorrecta`, { 
+          description: `-20 XP. Aprende del error y sigue adelante.`,
+          icon: '📉' 
+        });
+      }
+    } catch (error) {
+      console.error("Error asignando XP", error);
+      toast.error("Error al actualizar la base de datos");
+    } finally {
+      setLoadingAction(false);
+    }
   };
 
   return (
@@ -98,7 +138,7 @@ export function DesafioVirtudes() {
                  onClick={() => handleVirtueSelect(virtue)}
                  whileHover={!feedback ? { scale: 1.05 } : {}}
                  whileTap={!feedback ? { scale: 0.95 } : {}}
-                 className={`relative flex aspect-square flex-col items-center justify-center rounded-2xl p-4 shadow transition-all duration-200
+                 className={`group relative flex aspect-square flex-col items-center justify-center rounded-2xl p-4 shadow transition-all duration-200
                    ${asset.bgColor} ${!feedback && asset.hoverBg} ${asset.textColor}
                    ${feedback && !isSelected && !showAsCorrect ? "opacity-50 grayscale" : ""}
                    ${showAsIncorrect ? "ring-4 ring-red-500" : ""}
@@ -111,10 +151,16 @@ export function DesafioVirtudes() {
                      src={asset.src}
                      alt={`Símbolo de ${asset.label}`}
                      fill
-                     className="object-contain"
+                     className="object-contain transition-transform duration-300 group-hover:scale-110"
                    />
                  </div>
-                 {/* <span className="mt-2 text-lg font-bold">{asset.label}</span> */}
+                 
+                 {/* Capa oscura con el texto grande en Hover */}
+                 <div className="absolute inset-0 z-10 flex items-center justify-center rounded-2xl bg-black/50 opacity-0 backdrop-blur-sm transition-opacity duration-300 group-hover:opacity-100">
+                   <span className="text-2xl md:text-3xl font-black text-white tracking-widest uppercase drop-shadow-md">
+                     {asset.label}
+                   </span>
+                 </div>
                </motion.button>
              );
           })}

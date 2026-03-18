@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Inter } from "next/font/google";
 import { Toaster } from "@/components/ui/sonner";
+import { ProfileProvider } from "@/lib/profile-store";
 import "./globals.css";
 
 const inter = Inter({
@@ -9,8 +10,8 @@ const inter = Inter({
 });
 
 export const metadata: Metadata = {
-  title: "Superhéroes Estoicos: Aventura",
-  description: "¡Descubre los secretos de los Estoicos y conviértete en un superhéroe de la mente!",
+  title: "ACADEMIA ESTOICA GOPLEMMINGS",
+  description: "¡Conviértete en un Héroe Estoico! Aprende sabiduría, coraje, justicia y templanza.",
 };
 
 export default function RootLayout({
@@ -21,8 +22,10 @@ export default function RootLayout({
   return (
     <html lang="es" suppressHydrationWarning>
       <body className={`${inter.variable} antialiased font-sans`}>
-        {children}
-        <Toaster richColors position="bottom-center" />
+        <ProfileProvider>
+          {children}
+          <Toaster richColors position="bottom-center" />
+        </ProfileProvider>
       </body>
     </html>
   );
