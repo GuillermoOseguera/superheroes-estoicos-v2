@@ -151,6 +151,7 @@ export function ProfileProvider({ children }: { children: React.ReactNode }) {
     setActiveProfileState(null);
     localStorage.removeItem(ACCOUNT_KEY);
     localStorage.removeItem(STORAGE_KEY);
+    window.location.href = "/";
   };
 
   return (
