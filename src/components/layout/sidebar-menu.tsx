@@ -3,7 +3,8 @@
 import Link from "next/link";
 import Image from "next/image";
 import { usePathname } from "next/navigation";
-import { Home, Swords, BookOpen, Target, Trophy, BarChart2 } from "lucide-react";
+import { Home, Swords, BookOpen, Target, Trophy, BarChart2, LogOut, Users } from "lucide-react";
+import { useProfile } from "@/lib/profile-store";
 
 const NAV_ITEMS = [
   { href: "/home", label: "Cuartel General", icon: Home },
@@ -16,6 +17,7 @@ const NAV_ITEMS = [
 
 export function SidebarMenu() {
   const pathname = usePathname();
+  const { logout, activeAccount } = useProfile();
 
   return (
     <aside className="sidebar">
@@ -56,12 +58,27 @@ export function SidebarMenu() {
         style={{
           padding: "12px 8px",
           borderTop: "1px solid var(--sidebar-border)",
+          flexShrink: 0,
+          display: "flex",
+          flexDirection: "column",
+          gap: 4
         }}
       >
-        <Link href="/" className="sidebar-item">
-          <span style={{ fontSize: 18 }}>🦸</span>
-          <span>Cambiar Héroe</span>
+        <Link href="/" className="sidebar-item" style={{ padding: "8px 12px" }}>
+          <Users size={18} />
+          <span style={{ fontSize: 13 }}>Cambiar Héroe</span>
         </Link>
+        <button 
+          onClick={logout} 
+          className="sidebar-item" 
+          style={{ 
+            padding: "8px 12px", background: "none", border: "none", width: "100%", 
+            textAlign: "left", cursor: "pointer", color: "#ef4444" 
+          }}
+        >
+          <LogOut size={18} />
+          <span style={{ fontSize: 13 }}>Salir ({activeAccount?.username})</span>
+        </button>
       </div>
     </aside>
   );

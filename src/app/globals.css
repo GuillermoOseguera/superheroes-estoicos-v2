@@ -69,7 +69,7 @@ html, body {
   top: 0;
   bottom: 0;
   z-index: 50;
-  overflow-y: auto;
+  overflow-y: hidden;
 }
 
 .sidebar-logo {
@@ -79,6 +79,7 @@ html, body {
   flex-direction: column;
   align-items: center;
   gap: 6px;
+  flex-shrink: 0;
 }
 
 .sidebar-logo-icon {
@@ -107,6 +108,7 @@ html, body {
   display: flex;
   flex-direction: column;
   gap: 4px;
+  overflow-y: auto;
 }
 
 .sidebar-item {

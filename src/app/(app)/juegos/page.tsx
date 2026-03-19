@@ -6,6 +6,8 @@ import Link from "next/link";
 import { useProfile } from "@/lib/profile-store";
 import { useEffect } from "react";
 
+const XP_AWARD = 25;
+
 const GAMES = [
   {
     id: "dos-cajas",
@@ -65,11 +67,11 @@ const GAMES = [
     href: "/juegos/escudo",
     title: "Escudo Estoico",
     emoji: "🛡️",
-    description: "¡Próximamente! Construye tu escudo de virtudes.",
+    description: "Construye tu escudo personal con los 4 pilares estoicos: Sabiduría, Coraje, Justicia y Templanza.",
     color: "#d4a017",
-    xp: "Pronto",
+    xp: `${XP_AWARD} XP al completar`,
     virtue: "Justicia",
-    locked: true,
+    locked: false,
   },
 ];
 

@@ -372,4 +372,188 @@ export const STORIES: Story[] = [
     ],
     lesson: "La justicia es tratar a todos con dignidad, especialmente a quienes nadie mira. Nunca sabes qué tesoro esconde la persona que todos ignoran."
   },
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // HISTORIAS PROFUNDAS Y REFLEXIVAS (Nuevas)
+  // ═══════════════════════════════════════════════════════════════════════════
+  {
+    id: "barco_tormenta",
+    title: "El Capitán y la Tormenta Implacable",
+    colorScheme: "cyan",
+    paragraphs: [
+      "Cuenta la leyenda que el mejor capitán de la antigua Grecia quedó atrapado en la peor tormenta jamás vista. Olas gigantescas golpeaban el barco, los relámpagos iluminaban la noche y el viento destrozaba las velas. La tripulación, aterrorizada, corría de un lado a otro pidiendo milagros o maldiciendo su suerte, consumiendo toda su energía en el pánico.",
+      "El capitán, sin embargo, permanecía atado al timón, con los ojos fijos en la brújula y las manos firmes. No gritaba al cielo ni lloraba por el barco dañado. Simplemente giraba el timón hacia las olas para no volcar, dando órdenes claras a quienes aún podían escuchar.",
+      "Cuando un joven marinero le preguntó cómo podía estar tan tranquilo mientras el mar intentaba hundirlos, el capitán respondió: 'Yo no puedo controlar los vientos, ni silenciar los truenos, ni decidir la altura de las olas. Hacer un berrinche por la tormenta no la detendrá. Pero soy el dueño absoluto de mi timón y de mis decisiones'.",
+      "Al amanecer, el barco estaba maltrecho, pero todos sobrevivieron y llegaron al puerto. La tripulación entendió que el miedo inútil casi los ahoga, pero la calma y el enfoque en lo que sí podían controlar, los salvó."
+    ],
+    lesson: "Gritarle a la tormenta no la detendrá. Cuando el mundo a tu alrededor se vuelva caos, enfócate en gobernar tu propio timón."
+  },
+  {
+    id: "dos_flechas",
+    title: "La Leyenda de las Dos Flechas",
+    colorScheme: "red",
+    paragraphs: [
+      "Un día, un sabio anciano paseaba por el bosque con su joven aprendiz. De pronto, un accidente ocurrió: el aprendiz tropezó y una espina profunda se clavó en su pierna. El joven gritó de dolor, pero inmediatamente después empezó a llorar inconsolablemente diciendo: '¡Por qué a mí! ¡Siempre tengo mala suerte! ¡Nunca podré volver a caminar bien!'.",
+      "El sabio lo ayudó a sentarse y le dijo: 'Escucha bien. En la vida, cuando nos lastimamos, el universo nos dispara una primera flecha. Esa flecha es el dolor físico o el evento desafortunado inevitable. La espina en tu pierna es la primera flecha, y es natural que duela'.",
+      "Luego añadió: 'Pero todo lo que estás gritando ahora —tu queja, tu victimismo, tu sufrimiento por el futuro— es una segunda flecha. Y lo peor de todo, es que esa segunda flecha te la estás disparando tú mismo al corazón'.",
+      "El aprendiz se secó las lágrimas, guardó silencio y dejó que el sabio le retirara la espina. El dolor seguía ahí, pero el sufrimiento insoportable había desaparecido mágicamente al soltar sus quejas."
+    ],
+    lesson: "El dolor físico o los malos eventos (la primera flecha) son inevitables. El sufrimiento y la queja (la segunda flecha) son opcionales. No te dispares a ti mismo."
+  },
+  {
+    id: "arquero_ciego",
+    title: "El Arquero y el Espectador",
+    colorScheme: "amber",
+    paragraphs: [
+      "En un gran torneo, un joven y talentoso arquero demostró su habilidad acertando tres veces seguidas en el centro exacto de la diana. La multitud enloqueció, y el joven, inflado de orgullo, retó a un viejo maestro que observaba en silencio.",
+      "El maestro aceptó. Sin embargo, no llevó al joven a otra diana en el campo, sino al borde de un profundo abismo. Sacó su arco, se paró en un tronco podrido que asomaba al precipicio y disparó su flecha hacia un árbol lejano, acertando con total calma.",
+      "'Ahora es tu turno', dijo el maestro. El joven arquero se acercó al borde, pero al mirar el abismo negro debajo de sus pies, sus manos empezaron a temblar. El sudor le nubló la vista. Disparó y la flecha ni siquiera rozó el árbol.",
+      "El maestro le sonrió: 'Tienes gran habilidad con el arco, pero muy poca habilidad con tu mente. Cuando el terreno era firme y la gente te aplaudía, tu centro estaba en el orgullo. Cuando apareció el peligro, tu centro fue el miedo. Un verdadero maestro dispara igual en un jardín que en el borde de un abismo, no porque le importe dar en el blanco, sino porque su mente permanece imperturbable'."
+    ],
+    lesson: "Si tu paz depende de los aplausos o de la comodidad total, te derrumbarás cuando el suelo tiemble. Tu enfoque debe estar en tu propia mente, no en la diana."
+  },
+  {
+    id: "rey_tiempo",
+    title: "El Rey Que Quería Atrapar el Tiempo",
+    colorScheme: "indigo",
+    paragraphs: [
+      "Hubo una vez un poderoso rey que tenía un miedo terrible a envejecer y a que sus momentos felices terminaran. Cuando organizaba una gran fiesta, a mitad de la noche se ponía a llorar, angustiado porque sabía que la música eventualmente pararía y los invitados se irían.",
+      "Mandó a construir relojes gigantes e intentó prohibir a sus súbditos mencionar la palabra 'mañana'. Pero la angustia lo consumía, ya que nunca podía disfrutar el presente por el miedo al futuro.",
+      "Un filósofo peregrino le ofreció un remedio. Le entregó un anillo con una inscripción en su interior y le dijo: 'Lee esto cada vez que estés excesivamente feliz, y también cuando estés profundamente triste'.",
+      "El rey abrió el anillo. Decía: 'Esto también pasará'. Al principio le pareció deprimente. Pero luego entendió la lección: si las cosas malas pasan, no hay razón para la desesperación; y si las cosas buenas también pasan, no hay tiempo que perder en angustias. Aprendió a vivir el minuto exacto, aceptando que la belleza de un momento reside precisamente en que no durará para siempre."
+    ],
+    lesson: "Amor Fati. Ama tu destino tal cual es. Al aceptar que todo es temporal, dejas de aferrarte al pasado o temer al futuro, y empiezas a disfrutar el presente."
+  },
+  {
+    id: "mochila_piedras",
+    title: "La Mochila de las Ofensas",
+    colorScheme: "stone",
+    paragraphs: [
+      "Un guerrero viajaba en busca de la iluminación, pero se sentía constantemente agotado e infeliz. Le molestaba todo: recordaba cómo un mercader lo había estafado hacía meses, cómo su antiguo maestro lo había regañado años atrás, y cómo alguien se había burlado de su armadura el día anterior.",
+      "En su camino encontró a una ermitaña y le pidió ayuda para aliviar su carga. La ermitaña le dio una mochila vacía y le dijo: 'Cada vez que recuerdes algo malo que te hayan hecho y te sientas enojado, mete una piedra en esta mochila y cárgala en tu espalda'.",
+      "Al cabo de unas semanas, la mochila era tan pesada que el guerrero apenas podía caminar. Estaba lastimado y al borde del colapso. Buscó de nuevo a la ermitaña y le exigió una cura para el dolor de espalda.",
+      "La ermitaña simplemente desabrochó la mochila y la dejó caer al suelo. 'Tú mismo decidiste cargar cada piedra mucho tiempo después de que el evento sucedió', le explicó. 'El rencor es un veneno que te tomas tú esperando que el otro muera. Suelta el peso'."
+    ],
+    lesson: "Aferrarse a ofensas pasadas o a la injusticia es cargar piedras innecesarias. Perdonar y soltar no es un regalo para el ofensor, es libertad para ti."
+  },
+  {
+    id: "caballo_salvaje",
+    title: "El Jinete y el Caballo Salvaje",
+    colorScheme: "emerald",
+    paragraphs: [
+      "Un joven impulsivo compró un caballo negro, hermoso pero salvaje. El caballo corría desbocado, pateaba a quien se acercara y parecía imposible de domar. El joven intentaba montarlo a la fuerza, usando látigos y gritos, pero el caballo solo se volvía más agresivo y a menudo lo tiraba al polvo.",
+      "Cansado y herido, el joven acudió al domador más respetado del pueblo. El domador no llevó un látigo al corral; llevó zanahorias, paciencia y una soga suave. Pasó días sentándose en silencio cerca del caballo, mostrándole que no era una amenaza, hasta que el animal le permitió tocarlo.",
+      "'Tu mente impulsiva es como este caballo salvaje', le explicó el domador al joven. 'Si tus emociones (el enojo, el miedo, el deseo extremo) toman el control, te arrastrarán y te estrellarán contra las piedras. Si intentas reprimirlas con violencia, te derribarán'.",
+      "'La verdadera maestría no es no sentir, sino acercarte a tus emociones con razón, entender por qué están ahí y guiarlas con una intención serena'."
+    ],
+    lesson: "La templanza no es eliminar las emociones, sino domarlas como un buen jinete doma a su caballo: con calma, razón y dirección, sin dejarse arrastrar."
+  },
+  {
+    id: "vasija_rota",
+    title: "La Vasija Reparada (Kintsugi)",
+    colorScheme: "rose",
+    paragraphs: [
+      "En el palacio de un shogun en Japón se encontraba una antigua y valiosísima vasija de porcelana. Un día, por descuido durante la limpieza, la vasija cayó y se rompió en doce pedazos. El shogun estaba desconsolado e iba a desechar los fragmentos.",
+      "Sin embargo, un artista le pidió quedarse con los pedazos. Semanas después, el artista regresó al palacio y presentó la vasija. No solo la había pegado, sino que había rellenado todas las grietas con oro líquido.",
+      "La vasija ahora tenía cicatrices doradas brillando en su superficie. En lugar de esconder sus roturas, las celebraba. El shogun quedó maravillado, pues la vasija era ahora mucho más hermosa y valiosa que antes de romperse.",
+      "El artista hizo una reverencia profunda: 'Las personas somos iguales a esta vasija. Los golpes y fracasos nos rompen, pero no somos basura por ello. Cuando reconstruimos nuestro carácter con aprendizaje y resiliencia, nuestras cicatrices se vuelven líneas de oro. Somos más valiosos justamente porque estuvimos rotos y logramos sanar'."
+    ],
+    lesson: "Tus fracasos y momentos difíciles no te arruinan. Si aplicas la sabiduría, te reconstruyes más fuerte, más humilde y mucho más valioso."
+  },
+  {
+    id: "pajaro_jaula",
+    title: "El Pájaro y la Puerta Abierta",
+    colorScheme: "sky",
+    paragraphs: [
+      "Durante años, un hermoso pájaro tropical vivió encerrado en una pequeña jaula dorada. Pasaba los días saltando de un palo a otro, frustrado, mirando al cielo y deseando, por encima de todo, poder volar hacia los árboles.",
+      "Un día, debido a un fuerte ventarrón, la jaula se cayó de la mesa y la puerta se abrió de par en par. El dueño no estaba en casa. Era la oportunidad perfecta.",
+      "Pero el pájaro se asomó por la puerta y vio el inmenso cielo, imaginó a los halcones que podrían cazarlo, las tormentas y la falta de comida fácil. El miedo fue tan grande que retrocedió. Con su propio pico, empujó la puerta hasta cerrarla y se acurrucó en su esquina de siempre, convencido de que al menos ahí, estaba 'seguro'.",
+      "A veces la vida nos ofrece la oportunidad exacta que hemos estado esperando, el cambio que ansiábamos. Pero nos acostumbramos tanto a quejarnos de nuestras limitaciones que, cuando la puerta de la libertad y el desafío se abre, nosotros mismos decidimos quedarnos encerrados."
+    ],
+    lesson: "La libertad exige valentía. No culpes a la jaula si, cuando tienes la puerta abierta para intentar algo nuevo, prefieres la comodidad de lo conocido."
+  },
+  {
+    id: "mendigo_copa",
+    title: "El Mendigo y la Copa Sin Fondo",
+    colorScheme: "amber",
+    paragraphs: [
+      "Un mendigo muy ambicioso se paró frente a la carroza del rey y no lo dejó avanzar. El rey, divirtiéndose, le dijo: 'Pídeme lo que quieras y te lo daré'. El mendigo extendió una pequeña taza de madera de su propiedad y dijo: 'Solo llene esta taza con monedas de oro'.",
+      "El rey, riendo ante la modesta petición, ordenó a su tesorero que lo hiciera. Sin embargo, tan pronto como las monedas tocaban el fondo de la taza, desaparecían. El tesorero vació una bolsa entera, luego un cofre, y la taza seguía vacía pidiendo más.",
+      "El rey, estupefacto y con su tesoro casi vacío, le gritó al mendigo: '¡Detente! ¿De qué está hecha esa taza maldita?'.",
+      "El mendigo sonrió amargamente y respondió: 'Está hecha de los deseos humanos, majestad. No importa cuánto dinero, poder, fama o cosas materiales le arrojes; nunca, jamás se llena'. Esa tarde, el rey comprendió que la única forma de ser verdaderamente rico, era dejar de desear más."
+    ],
+    lesson: "La sed de tener más cosas es como una taza sin fondo. La verdadera riqueza no es poseer mucho, sino necesitar menos y valorar lo que ya se tiene."
+  },
+  {
+    id: "escultor_criticas",
+    title: "La Obra del Escultor Sordo",
+    colorScheme: "stone",
+    paragraphs: [
+      "Un escultor pasaba todos los días tallando un inmenso bloque de mármol en la plaza principal de la ciudad. Mientras trabajaba, todos opinaban. El panadero decía: 'La nariz es muy grande'. El soldado decía: 'Los brazos son delgados'. El político comentaba: 'La pose no tiene autoridad'.",
+      "Si el escultor los hubiera escuchado, habría limado la nariz hasta desaparecerla, agrandado los brazos desproporcionadamente y habría estropeado todo intentando complacer a cientos de personas diferentes al mismo tiempo.",
+      "Afortunadamente, el escultor no prestó atención a ninguna de las críticas y siguió rigurosamente la visión de su propio diseño. Tras meses de trabajo, desveló la estatua terminada y todos enmudecieron ante la obra maestra indiscutible que se presentó ante ellos.",
+      "Resulta que el escultor no era sordo de nacimiento; simplemente decidió ser sordo temporalmente a las opiniones ajenas. Sabía que quien intenta esculpir su vida para agradar a todos, termina creando un monstruo sin forma."
+    ],
+    lesson: "No permitas que las opiniones cambiantes y desinformadas de los demás cincelen tu vida. Rígete por tus propios principios y virtud; tu vida es tu obra maestra."
+  },
+  {
+    id: "guerrero_impenetrable",
+    title: "El Guerrero Que Nunca Empuñó Su Espada",
+    colorScheme: "red",
+    paragraphs: [
+      "Había un guerrero en un monasterio famoso por no haber perdido jamás un combate, a pesar de que nunca se le veía desenvainar su espada en el dojo. Un joven desafiante, frustrado por esta reputación, viajó semanas solo para enfrentarlo.",
+      "Al llegar, el joven comenzó a insultar al guerrero. Insultó a sus antepasados, se burló de su técnica, lo llamó cobarde e incluso escupió en el piso de madera frente a él. El guerrero mayor simplemente se sentó a observar, con una expresión de absoluta calma y desapego, tomando té.",
+      "Varias horas después, el joven estaba afónico, exhausto y confundido. Se dio por vencido y preguntó casi llorando: '¿Por qué no respondiste a mis ataques? ¿No tienes honor?'.",
+      "El guerrero anciano finalmente habló: 'Si alguien viene a darte un regalo, y tú no lo aceptas, ¿a quién pertenece el regalo?'. El joven dudó y dijo: 'Pues a quien intentó darlo'. 'Exactamente', sonrió el anciano. 'Tu ira y tus insultos fueron tu regalo. Yo decidí no aceptarlos. Siguen siendo 100% tuyos'."
+    ],
+    lesson: "Nadie puede ofenderte sin tu permiso. Si decides no tomar como personal una ofensa, el daño regresa íntegro a la persona que intentó herirte."
+  },
+  {
+    id: "laberinto_respuestas",
+    title: "El Laberinto en la Oscuridad",
+    colorScheme: "fuchsia",
+    paragraphs: [
+      "Un hombre fue castigado y abandonado en un laberinto en total oscuridad. Cada vez que daba un paso, chocaba contra una pared diferente. Intentaba correr buscando desesperadamente la salida, pero solo lograba agotarse, lastimarse y terminar en el piso llorando de frustración.",
+      "De pronto recordó los consejos de un antiguo amigo. Se levantó, cerró los ojos (pues abrirlos en la oscuridad era igual de inútil) y colocó su mano derecha firmemente sobre la pared de su costado.",
+      "Comenzó a caminar muy lentamente, sin soltar jamás el contacto con esa pared continua. Daba pasos cortos, midiendo el terreno. Pasaron horas y no había esperanza a la vista. Pero él no se desesperó: confió en que, matemáticamente, seguir una sola pared sin soltarla lo llevaría inevitablemente a la salida.",
+      "Finalmente, sintió la brisa fresca y salió al exterior. Comprendió que cuando no puedes ver el panorama general de un problema enorme, correr despavorido en todas direcciones te lastima. La clave es apegarse a un pequeño buen hábito diario (la mano en la pared) y avanzar paso a paso hasta que la salida aparezca."
+    ],
+    lesson: "Ante un problema inmenso que parece no tener solución inmediata, no te desesperes. Elige una acción correcta básica, aférrate a ella y da un paso a la vez de forma repetitiva."
+  },
+  {
+    id: "arbol_frutos",
+    title: "El Árbol Viejo y el Huerto",
+    colorScheme: "green",
+    paragraphs: [
+      "Un campesino tenía un hermoso manzano en su huerto, el cual daba frutos tan rojos y dulces que eran la envidia de la ciudad. Sin embargo, un invierno crudo casi aniquila las raíces del árbol y un rayo le arrancó sus ramas principales.",
+      "El campesino lloró creyendo que el árbol moriría. Pero para la primavera, el manzano reunió la poca fuerza que le quedaba y, en la única pequeña rama que sobrevivió, brotaron cinco manzanas perfectas.",
+      "El manzano no se deprimió comparando cómo antes daba cien manzanas y ahora solo cinco. Tampoco decidió no dar ninguna 'porque cinco no eran suficientes'. Usó todo lo que la naturaleza le dejó a su disposición para seguir cumpliendo su propósito de dar fruto.",
+      "Nosotros muchas veces, tras una pérdida o una falla, sentimos que no somos los mismos de antes y dejamos de esforzarnos por completo. Pero nuestro trabajo no es ser perfectos o producir lo mismo de siempre; es dar lo mejor con lo que nos queda justo en este momento."
+    ],
+    lesson: "Haz lo mejor que puedas con las ramas que te quedan. No desprecies tus pequeñas acciones de bondad o esfuerzo solo porque juzgues que deberías ser capaz de más."
+  },
+  {
+    id: "espejo_roto",
+    title: "La Princesa y el Espejo Sin Azogue",
+    colorScheme: "purple",
+    paragraphs: [
+      "Una joven princesa presumía ser la más bella de su reino. Su vida entera giraba en torno a vestirse y mirarse durante horas en un espejo mágico que importaron de tierras lejanas, el cual realzaba cada detalle de su belleza en alta definición.",
+      "Un día, debido a un accidente, el lujoso espejo cayó y el cristal se hizo añicos. Creyendo que su belleza residía dentro de ese reflejo perfecto, la princesa se deprimió profundamente y no quiso salir de su habitación porque creía que nadie la querría sin su 'imagen perfecta'.",
+      "Su consejero entró una mañana, corrió las cortinas para que entrara el sol y le entregó un pequeño cuenco de barro con agua de manantial. 'Mire su rostro en el agua, princesa', dijo. El reflejo en el agua era borroso e imperfecto, pero la brisa y la luz lo llenaban de vitalidad natural y paz.",
+      "La princesa entendió: ella era la dueña del agua, de la vasija y de su propia piel. El espejo anterior solo era un objeto de cristal inerte que no definía quién era como gobernante ni su humanidad. El valor no radicaba en la perfección de la imagen devuelta, sino en lo real de quién observaba."
+    ],
+    lesson: "No permitas que tu percepción de ti mismo dependa de espejos artificiales (como las expectativas sociales, modas, o redes). Tu esencia y valor son independientes del lente que uses para mirarte."
+  },
+  {
+    id: "reloj_arena_inverso",
+    title: "El Hombre del Reloj de Arena Creciendo",
+    colorScheme: "orange",
+    paragraphs: [
+      "Cuenta la historia que todos en la antigua Atenas llevaban un reloj de arena al cuello. Estos relojes eran extraños: empezaban vacíos abajo y la arena caía de un compartimento celestial invisible. Cuando se llenaba la parte de abajo, la persona pasaba al otro mundo. Todos vivían temerosos, mirando cómo la arena de abajo iba subiendo, midiendo lo poco que les quedaba.",
+      "Pero había un filósofo estoico que caminaba sonriente. Nunca miraba con terror la arena acumulada abajo.",
+      "Un día le preguntaron: '¿Por qué sonríes? ¿Acaso no ves que tu reloj de arena está ya a más de la mitad? Tu muerte se acerca inexorablemente'.",
+      "Él contestó: 'Ustedes sufren porque ven la arena de abajo como tiempo perdido y muerte. Yo la veo diferente. Esa arena acumulada abajo es lo único que verdaderamente es MÍO. Nadie me la puede quitar, ni los dioses ni los tiranos. Cada grano abajo representa algo que ya viví, amé, aprendí o superé. Entre más arena tengo, más rico soy en vida'. La historia nos recuerda que el pasado bien vivido no es tiempo perdido, es nuestro tesoro más inexpugnable."
+    ],
+    lesson: "Memento Mori (recuerda que eres mortal) no es para tener miedo, sino para vivir el hoy intensamente. El tiempo que ha pasado es seguro y es tuyo para siempre; no lo llores, celébralo."
+  }
 ];

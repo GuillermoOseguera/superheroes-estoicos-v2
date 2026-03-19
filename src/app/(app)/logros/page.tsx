@@ -4,8 +4,7 @@ import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
 import { useRouter } from "next/navigation";
 import { useProfile } from "@/lib/profile-store";
-import { supabase, unlockAchievement } from "@/lib/supabase";
-import { toast } from "sonner";
+import { supabase } from "@/lib/supabase";
 import { triggerAchievementAnimation } from "@/lib/confetti";
 
 import { ALL_ACHIEVEMENTS } from "@/lib/data-logros";
@@ -26,27 +25,6 @@ export default function LogrosPage() {
       });
   }, [activeProfile?.id]);
 
-  const handleUnlock = async (achievementId: string) => {
-    if (!activeProfile) return;
-    try {
-      await unlockAchievement(activeProfile.id, achievementId);
-      
-      // Update local state
-      setUnlockedIds(prev => {
-        const newSet = new Set(prev);
-        newSet.add(achievementId);
-        return newSet;
-      });
-
-      // El overlay global CelebrationOverlay se dispara automáticamente 
-      // vía el evento "achievement_unlocked" que ahora emite unlockAchievement().
-
-    } catch (error) {
-      console.error(error);
-      toast.error("Error al desbloquear el logro");
-    }
-  };
-
   const unlocked = ALL_ACHIEVEMENTS.filter((a) => unlockedIds.has(a.id));
   const locked = ALL_ACHIEVEMENTS.filter((a) => !unlockedIds.has(a.id));
 
@@ -60,8 +38,9 @@ export default function LogrosPage() {
       <h2 className="font-display" style={{ fontSize: 26, fontWeight: 700, marginBottom: 6 }}>
         🏆 Sala de Trofeos
       </h2>
-      <p style={{ color: "#64748b", marginBottom: 28 }}>
-        {unlocked.length}/{ALL_ACHIEVEMENTS.length} logros desbloqueados. ¡Sigue entrenando!
+      <p style={{ color: "#64748b", marginBottom: 28, fontSize: "1.05rem" }}>
+        Has desbloqueado <strong style={{ color: "#10b981" }}>{unlocked.length}</strong> de <strong>{ALL_ACHIEVEMENTS.length}</strong> logros. 
+        Te {locked.length === 1 ? 'falta' : 'faltan'} <strong>{locked.length}</strong> para completar la colección. ¡Sigue entrenando!
       </p>
 
       <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(180px, 1fr))", gap: 16 }}>
@@ -70,42 +49,49 @@ export default function LogrosPage() {
           return (
             <motion.div
               key={achievement.id}
+              onClick={() => {
+                if (isUnlocked) {
+                  window.dispatchEvent(new CustomEvent("achievement_unlocked", { detail: { achievementId: achievement.id } }));
+                }
+              }}
+              whileHover={isUnlocked ? { y: -5, scale: 1.05 } : {}}
               initial={{ opacity: 0, scale: 0.9 }}
               animate={{ opacity: 1, scale: 1 }}
               transition={{ delay: i * 0.06 }}
               className="parchment-card"
-              onClick={() => !isUnlocked && handleUnlock(achievement.id)}
               style={{
                 textAlign: "center",
-                opacity: isUnlocked ? 1 : 0.45,
-                filter: isUnlocked ? "none" : "grayscale(0.6)",
-                cursor: isUnlocked ? "default" : "pointer",
+                opacity: isUnlocked ? 1 : 0.6,
+                filter: isUnlocked ? "none" : "grayscale(0.8)",
+                cursor: isUnlocked ? "pointer" : "default",
               }}
-              whileHover={!isUnlocked ? { scale: 1.05, opacity: 0.8 } : {}}
             >
               <div
                 className="badge-icon"
                 style={{
                   margin: "0 auto 10px",
                   background: isUnlocked ? `${achievement.color}20` : "#f1f5f9",
-                  border: `2px solid ${isUnlocked ? achievement.color + "50" : "#e2e8f0"}`,
+                  border: `2px solid ${isUnlocked ? achievement.color + "50" : "#cbd5e1"}`,
                   fontSize: 32,
                   width: 64,
                   height: 64,
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center"
                 }}
               >
-                {achievement.icon}
+                {isUnlocked ? achievement.icon : "🔒"}
               </div>
               <div style={{
                 fontWeight: 700,
                 fontSize: 13,
-                color: isUnlocked ? achievement.color : "#94a3b8",
+                color: isUnlocked ? achievement.color : "#64748b",
                 marginBottom: 4,
               }}>
                 {achievement.label}
               </div>
-              <div style={{ fontSize: 11, color: "#94a3b8", lineHeight: 1.4 }}>
-                {achievement.desc}
+              <div style={{ fontSize: 11, color: "#94a3b8", lineHeight: 1.4, fontStyle: isUnlocked ? "normal" : "italic" }}>
+                {isUnlocked ? achievement.desc : "??? Descúbrelo jugando"}
               </div>
               {isUnlocked && (
                 <div style={{
@@ -123,6 +109,52 @@ export default function LogrosPage() {
             </motion.div>
           );
         })}
+      </div>
+
+      {/* SECCIÓN PRÓXIMAMENTE: GALERÍA DE RELIQUIAS */}
+      <div style={{ marginTop: 60, borderTop: "2px dashed #cbd5e1", paddingTop: 40, paddingBottom: 60 }}>
+        <h2 className="font-display" style={{ fontSize: 26, fontWeight: 700, marginBottom: 6, color: "#0f172a" }}>
+           🏛️ Bóveda de Reliquias y Archivos (Próximamente)
+        </h2>
+        <p style={{ color: "#64748b", marginBottom: 28, fontSize: "1.05rem", maxWidth: 700 }}>
+          Estamos preparando una cámara secreta. Al dominar ciertos juegos, no solo ganarás medallas, sino que <strong>desbloquearás Piezas de Historia (Ilustraciones Exclusivas y Videos Cinematográficos)</strong> para tu galería personal.
+        </p>
+        
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(260px, 1fr))", gap: 20 }}>
+          {/* Placeholder 1 */}
+          <div style={{ background: "#1e293b", borderRadius: 24, overflow: "hidden", position: "relative", filter: "grayscale(1)", opacity: 0.7, border: "2px solid #334155" }}>
+             <div style={{ height: 160, background: "linear-gradient(45deg, #334155, #0f172a)", display: "flex", alignItems: "center", justifyContent: "center", position: "relative" }}>
+               <span style={{ fontSize: 48, opacity: 0.4 }}>🖼️</span>
+               <div style={{ position: "absolute", inset: 0, display: "flex", alignItems: "center", justifyContent: "center" }}>
+                 <div style={{ background: "rgba(0,0,0,0.6)", padding: "10px 20px", borderRadius: 20, color: "white", fontWeight: 800, fontSize: 13, letterSpacing: 1 }}>
+                   IMAGEN ENCRIPTADA
+                 </div>
+               </div>
+             </div>
+             <div style={{ padding: 20 }}>
+               <div style={{ fontSize: 11, color: "#94a3b8", fontWeight: 700, letterSpacing: 1, marginBottom: 4 }}>RELIQUIA VISUAL</div>
+               <div style={{ color: "white", fontWeight: 800, fontSize: 18 }}>El Escudo de la Lógica</div>
+               <div style={{ color: "#cbd5e1", fontSize: 12, marginTop: 8 }}>🔒 Juega 5 veces "Memoria Estoica" para revelar esta ilustración legendaria.</div>
+             </div>
+          </div>
+
+          {/* Placeholder 2 */}
+          <div style={{ background: "#1e293b", borderRadius: 24, overflow: "hidden", position: "relative", filter: "grayscale(1)", opacity: 0.7, border: "2px solid #334155" }}>
+             <div style={{ height: 160, background: "linear-gradient(45deg, #334155, #0f172a)", display: "flex", alignItems: "center", justifyContent: "center", position: "relative" }}>
+               <span style={{ fontSize: 48, opacity: 0.4 }}>🎬</span>
+               <div style={{ position: "absolute", inset: 0, display: "flex", alignItems: "center", justifyContent: "center" }}>
+                 <div style={{ background: "rgba(0,0,0,0.6)", padding: "10px 20px", borderRadius: 20, color: "white", fontWeight: 800, fontSize: 13, letterSpacing: 1 }}>
+                   CINTA BLOQUEADA
+                 </div>
+               </div>
+             </div>
+             <div style={{ padding: 20 }}>
+               <div style={{ fontSize: 11, color: "#94a3b8", fontWeight: 700, letterSpacing: 1, marginBottom: 4 }}>ARCHIVO DE VIDEO</div>
+               <div style={{ color: "white", fontWeight: 800, fontSize: 18 }}>Controlando la Tormenta</div>
+               <div style={{ color: "#cbd5e1", fontSize: 12, marginTop: 8 }}>🔒 Gana 3 veces seguidas en "Defensor" para visualizar esta lección de fortaleza.</div>
+             </div>
+          </div>
+        </div>
       </div>
     </div>
   );

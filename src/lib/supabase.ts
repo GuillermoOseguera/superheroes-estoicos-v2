@@ -140,6 +140,20 @@ export async function addGameXP(
     xp_earned: xpEarned,
   });
 
+  // 4. Verificar logros basados en juegos jugados
+  const { count } = await supabase
+    .from("game_results")
+    .select("*", { count: "exact", head: true })
+    .eq("user_id", userId)
+    .not("game_id", "like", "mission_%"); // Avoid counting daily missions as minigames
+
+  if (count !== null) {
+    if (count >= 1) await unlockAchievement(userId, "primer_juego");
+    if (count >= 10) await unlockAchievement(userId, "diez_juegos");
+    if (count >= 50) await unlockAchievement(userId, "cincuenta_juegos");
+    if (count >= 100) await unlockAchievement(userId, "cien_juegos");
+  }
+
   return { newTotalXp, newLevel };
 }
 
@@ -211,12 +225,20 @@ export async function unlockAchievement(
   userId: string,
   achievementId: string
 ): Promise<void> {
+  // Confirmamos primero si ya existe para evitar errores en consola y eventos duplicados
+  const { data: existing } = await supabase
+    .from("unlocked_achievements")
+    .select("achievement_id")
+    .eq("user_id", userId)
+    .eq("achievement_id", achievementId)
+    .maybeSingle();
+
+  if (existing) return; // Ya lo tiene desbloqueado
+
+  // Procedemos a desbloquear
   const { error } = await supabase
     .from("unlocked_achievements")
-    .upsert(
-      { user_id: userId, achievement_id: achievementId },
-      { onConflict: "user_id,achievement_id" }
-    );
+    .insert({ user_id: userId, achievement_id: achievementId });
 
   if (!error && typeof window !== "undefined") {
     const event = new CustomEvent("achievement_unlocked", { detail: { achievementId } });

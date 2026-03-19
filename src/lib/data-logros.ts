@@ -13,11 +13,17 @@ export const ALL_ACHIEVEMENTS: Achievement[] = [
   { id: "aprendiz", icon: "📘", label: "Aprendiz", desc: "Alcanza el Nivel 2", color: "#3b82f6" },
   
   // Constancia y Rachas
-  { id: "racha_1", icon: "🔥", label: "El Viento Sopla", desc: "Racha de 1 día", color: "#dc2626" },
-  { id: "racha_3", icon: "🔥🔥", label: "Chispa Constante", desc: "Racha de 3 días", color: "#ea580c" },
+  { id: "racha_1", icon: "🔥", label: "El Viento Sopla", desc: "Consigue una racha de 1 día", color: "#dc2626" },
+  { id: "racha_3", icon: "🔥🔥", label: "Chispa Constante", desc: "Consigue una racha de 3 días", color: "#ea580c" },
   { id: "racha_7", icon: "🔥🔥🔥", label: "Llama Imparable", desc: "Racha de 7 días ininterrumpidos", color: "#ea580c" },
-  { id: "racha_14", icon: "☄️", label: "Meteoro de Voluntad", desc: "Racha de 14 días", color: "#ef4444" },
-  { id: "racha_30", icon: "🌞", label: "El Sol Nunca Cae", desc: "Racha de 30 días", color: "#f59e0b" },
+  { id: "racha_14", icon: "☄️", label: "Meteoro de Voluntad", desc: "Consigue una racha de 14 días", color: "#ef4444" },
+  { id: "racha_30", icon: "🌞", label: "El Sol Nunca Cae", desc: "Consigue una racha de 30 días", color: "#f59e0b" },
+  
+  // Participación en Juegos
+  { id: "primer_juego", icon: "🎮", label: "Primer Desafío", desc: "Juega tu primer minijuego", color: "#10b981" },
+  { id: "diez_juegos", icon: "🎲", label: "Jugador Constante", desc: "Juega 10 minijuegos o más", color: "#059669" },
+  { id: "cincuenta_juegos", icon: "🕹️", label: "Maestro del Juego", desc: "Juega 50 minijuegos o más", color: "#047857" },
+  { id: "cien_juegos", icon: "🏆", label: "Leyenda Lúdica", desc: "Juega 100 minijuegos o más", color: "#064e3b" },
   
   // Minijuegos Específicos
   { id: "desafio_virtudes_1", icon: "⚔️", label: "Hoja Afilada", desc: "Acierta en el Desafío de Virtudes", color: "#d4a017" },

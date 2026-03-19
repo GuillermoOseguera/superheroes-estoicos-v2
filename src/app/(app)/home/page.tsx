@@ -203,13 +203,42 @@ export default function HomePage() {
   return (
     <div>
       {/* Header */}
-      <div className="main-header" style={{ marginLeft: -24, marginRight: -24, marginTop: -24, marginBottom: 24, padding: "16px 24px" }}>
+      <div className="main-header" style={{ marginLeft: -24, marginRight: -24, marginTop: -24, marginBottom: 24, padding: "16px 24px", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
         <div>
           <div className="font-display" style={{ fontSize: 18, fontWeight: 700 }}>
             ACADEMIA ESTOICA GOPLEMMINGS
           </div>
+          <div style={{ fontSize: 13, color: "#94a3b8", marginTop: 2 }}>Cuartel General</div>
         </div>
-        <div style={{ fontSize: 13, color: "#94a3b8" }}>Cuartel General</div>
+        
+        <Link 
+          href="/" 
+          style={{
+            display: "flex",
+            alignItems: "center",
+            gap: 8,
+            background: "rgba(255,255,255,0.1)",
+            padding: "8px 16px",
+            borderRadius: 20,
+            color: "#f1e9d0",
+            textDecoration: "none",
+            fontSize: 13,
+            fontWeight: 600,
+            border: "1px solid rgba(255,255,255,0.2)",
+            transition: "all 0.2s"
+          }}
+          onMouseEnter={(e) => {
+            e.currentTarget.style.background = "rgba(255,255,255,0.15)";
+            e.currentTarget.style.borderColor = "var(--gold-400)";
+          }}
+          onMouseLeave={(e) => {
+            e.currentTarget.style.background = "rgba(255,255,255,0.1)";
+            e.currentTarget.style.borderColor = "rgba(255,255,255,0.2)";
+          }}
+        >
+          <span style={{ fontSize: 16 }}>🦸</span>
+          <span className="hidden sm:inline">Cambiar Héroe</span>
+        </Link>
       </div>
 
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 20 }}>
