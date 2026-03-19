@@ -64,7 +64,7 @@ export function SidebarMenu() {
           gap: 4
         }}
       >
-        <Link href="/" className="sidebar-item" style={{ padding: "8px 12px" }}>
+        <Link href="/select-hero" className="sidebar-item" style={{ padding: "8px 12px" }}>
           <Users size={18} />
           <span style={{ fontSize: 13 }}>Cambiar Héroe</span>
         </Link>

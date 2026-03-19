@@ -15,7 +15,7 @@ export default function LogrosPage() {
   const [unlockedIds, setUnlockedIds] = useState<Set<string>>(new Set());
 
   useEffect(() => {
-    if (!activeProfile) { router.replace("/"); return; }
+    if (!activeProfile) { router.replace("/select-hero"); return; }
     supabase
       .from("unlocked_achievements")
       .select("achievement_id")

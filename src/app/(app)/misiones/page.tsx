@@ -60,7 +60,7 @@ export default function MisionesPage() {
   const [submitting, setSubmitting] = useState<string | null>(null);
 
   useEffect(() => {
-    if (!activeProfile) { router.replace("/"); return; }
+    if (!activeProfile) { router.replace("/select-hero"); return; }
     const today = new Date().toISOString().split("T")[0];
     supabase
       .from("daily_missions")

@@ -135,7 +135,7 @@ export default function HomePage() {
 
   useEffect(() => {
     if (!activeProfile) {
-      router.replace("/");
+      router.replace("/select-hero");
       return;
     }
     refreshProfile();
@@ -212,7 +212,7 @@ export default function HomePage() {
         </div>
         
         <Link 
-          href="/" 
+          href="/select-hero" 
           style={{
             display: "flex",
             alignItems: "center",

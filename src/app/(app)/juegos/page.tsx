@@ -80,7 +80,7 @@ export default function JuegosPage() {
   const router = useRouter();
 
   useEffect(() => {
-    if (!activeProfile) router.replace("/");
+    if (!activeProfile) router.replace("/select-hero");
   }, [activeProfile]);
 
   return (
