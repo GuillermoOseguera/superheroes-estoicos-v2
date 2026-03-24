@@ -39,6 +39,9 @@ const HEROES = [
   },
 ];
 
+// Guard con Promesa Compartida para evitar inserciones paralelas en Renderizaciones Simultáneas (React 18 Strict Mode)
+const pendingInitialization: Record<string, Promise<any>> = {};
+
 export default function HeroSelectPage() {
   const router = useRouter();
   const { setActiveProfile, activeAccount, logout } = useProfile();
@@ -75,26 +78,37 @@ export default function HeroSelectPage() {
         setProfiles(data as Profile[]);
         setFetching(false);
       } else {
-        // Cuenta nueva! Crear los 3 héroes base
-        const defaultHeroes = [
-          { name: "Elías", avatar_id: 1, role: "kid", account_id: activeAccount.id },
-          { name: "Atenea", avatar_id: 2, role: "kid", account_id: activeAccount.id },
-          { name: "Marco", avatar_id: 3, role: "kid", account_id: activeAccount.id },
-        ];
+        const accountId = activeAccount.id;
+        
+        if (!pendingInitialization[accountId]) {
+          pendingInitialization[accountId] = (async () => {
+            const defaultHeroes = [
+              { name: "Elías", avatar_id: 1, role: "kid", account_id: accountId },
+              { name: "Atenea", avatar_id: 2, role: "kid", account_id: accountId },
+              { name: "Marco", avatar_id: 3, role: "kid", account_id: accountId },
+            ];
 
-        const { data: inserted, error: insErr } = await supabase
-          .from("profiles")
-          .insert(defaultHeroes)
-          .select();
+            const { data: inserted, error: insErr } = await supabase
+              .from("profiles")
+              .insert(defaultHeroes)
+              .select();
 
-        if (insErr || !inserted) {
-          toast.error("Error al inicializar héroes.");
-        } else {
+            if (insErr || !inserted) {
+              toast.error("Error al inicializar héroes.");
+              return null;
+            }
+
+            // Insertar virtudes iniciales
+            for (const p of inserted) {
+               await supabase.from("user_virtues").insert({ user_id: p.id });
+            }
+            return inserted;
+          })();
+        }
+
+        const inserted = await pendingInitialization[accountId];
+        if (inserted) {
           setProfiles(inserted as Profile[]);
-          // Insertar virtudes iniciales
-          for (const p of inserted) {
-             await supabase.from("user_virtues").insert({ user_id: p.id });
-          }
         }
         setFetching(false);
       }
