@@ -57,15 +57,7 @@ export function getRequiredLevelForGame(gameId: string): number {
 }
 
 export function getRequiredLevelForStory(storyId: string, fallbackIndex = 0): number {
-  if (storyId in STORY_UNLOCK_LEVELS) {
-    return STORY_UNLOCK_LEVELS[storyId];
-  }
-
-  if (fallbackIndex < 3) return 1;
-  if (fallbackIndex < 6) return 2;
-  if (fallbackIndex < 10) return 3;
-  if (fallbackIndex < 14) return 4;
-  return 5;
+  return 1; // Todas las historias están desbloqueadas desde el nivel 1
 }
 
 export function isUnlocked(requiredLevel: number, currentLevel: number): boolean {
