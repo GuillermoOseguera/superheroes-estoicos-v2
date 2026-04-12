@@ -5,7 +5,7 @@ import Image from "next/image";
 import { motion, AnimatePresence } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { STORIES } from "@/lib/data-stories";
-import { ChevronRight, ChevronLeft, BookOpen, Star, CheckCircle2 } from "lucide-react";
+import { ChevronRight, ChevronLeft, BookOpen, Star, CheckCircle2, RotateCcw, X, AlertTriangle } from "lucide-react";
 import { useProfile } from "@/lib/profile-store";
 import { addVirtueXP } from "@/lib/supabase";
 import { toast } from "sonner";
@@ -31,6 +31,7 @@ export function VisorHistorias() {
   const [temperanceCounter, setTemperanceCounter] = useState(0);
   const [hoverStar, setHoverStar] = useState(0);
   const [awardingXP, setAwardingXP] = useState(false);
+  const [showResetConfirm, setShowResetConfirm] = useState(false);
 
   // Shuffled stories - memoized so they stay consistent during the session
   const shuffledStories = useMemo(() => shuffleArray(STORIES), []);
@@ -136,6 +137,23 @@ export function VisorHistorias() {
     setHoverStar(0);
   };
 
+  const resetAllStories = useCallback(() => {
+    if (!activeProfile) return;
+    setReadIds(new Set());
+    setRatings({});
+    setTemperanceCounter(0);
+    setHoverStar(0);
+    localStorage.removeItem(LS_READ_KEY);
+    localStorage.removeItem(LS_RATINGS_KEY);
+    localStorage.removeItem(LS_TEMPERANCE_COUNTER);
+    setCurrentIndex(0);
+    setShowResetConfirm(false);
+    toast.success("Biblioteca reiniciada", {
+      description: "Todas las historias están como nuevas. ¡A leer de nuevo!",
+      icon: "📖",
+    });
+  }, [activeProfile, LS_READ_KEY, LS_RATINGS_KEY, LS_TEMPERANCE_COUNTER]);
+
   const story = storiesWithProgress[currentIndex];
   const isRead = readIds.has(story.id);
   const currentRating = ratings[story.id] || 0;
@@ -176,15 +194,28 @@ export function VisorHistorias() {
         para vencer obstáculos.
       </p>
 
-      {/* Progress bar */}
+      {/* Progress bar + Reset button */}
       <div className="mb-8 mx-auto max-w-lg">
         <div className="flex justify-between items-center mb-2">
           <span className="text-xs font-semibold text-zinc-500 dark:text-zinc-400">
             📚 {totalRead}/{STORIES.length} leídas
           </span>
-          <span className="text-xs font-semibold text-green-600 dark:text-green-400">
-            🏛️ +Templanza en {nextRewardIn} {nextRewardIn === 1 ? "historia" : "historias"}
-          </span>
+          <div className="flex items-center gap-3">
+            <span className="text-xs font-semibold text-green-600 dark:text-green-400">
+              🏛️ +Templanza en {nextRewardIn} {nextRewardIn === 1 ? "historia" : "historias"}
+            </span>
+            {totalRead > 0 && (
+              <motion.button
+                onClick={() => setShowResetConfirm(true)}
+                whileHover={{ scale: 1.08, rotate: -15 }}
+                whileTap={{ scale: 0.95 }}
+                className="group flex items-center gap-1.5 rounded-full bg-gradient-to-r from-rose-500 to-red-600 px-3.5 py-1.5 text-xs font-bold text-white shadow-md shadow-rose-500/25 transition-shadow hover:shadow-lg hover:shadow-rose-500/40"
+              >
+                <RotateCcw className="h-3.5 w-3.5 transition-transform group-hover:rotate-[-360deg] duration-500" />
+                Reiniciar
+              </motion.button>
+            )}
+          </div>
         </div>
         <div className="h-2.5 w-full rounded-full bg-zinc-200 dark:bg-zinc-700 overflow-hidden">
           <motion.div
@@ -195,6 +226,74 @@ export function VisorHistorias() {
           />
         </div>
       </div>
+
+      {/* Reset confirmation modal */}
+      <AnimatePresence>
+        {showResetConfirm && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm"
+            onClick={() => setShowResetConfirm(false)}
+          >
+            <motion.div
+              initial={{ scale: 0.8, opacity: 0, y: 20 }}
+              animate={{ scale: 1, opacity: 1, y: 0 }}
+              exit={{ scale: 0.8, opacity: 0, y: 20 }}
+              transition={{ type: "spring", damping: 25, stiffness: 300 }}
+              onClick={(e) => e.stopPropagation()}
+              className="relative mx-4 w-full max-w-sm overflow-hidden rounded-2xl bg-white p-0 shadow-2xl dark:bg-zinc-900"
+            >
+              {/* Modal gradient header */}
+              <div className="bg-gradient-to-r from-rose-500 to-red-600 px-6 pb-6 pt-8 text-center">
+                <motion.div
+                  initial={{ rotate: 0 }}
+                  animate={{ rotate: [0, -15, 15, -15, 0] }}
+                  transition={{ duration: 0.6, delay: 0.2 }}
+                  className="mx-auto mb-3 flex h-16 w-16 items-center justify-center rounded-full bg-white/20 backdrop-blur-sm"
+                >
+                  <AlertTriangle className="h-8 w-8 text-white" />
+                </motion.div>
+                <h3 className="text-xl font-black text-white">
+                  ¿Reiniciar biblioteca?
+                </h3>
+              </div>
+
+              <div className="px-6 pb-2 pt-5 text-center">
+                <p className="text-zinc-600 dark:text-zinc-300">
+                  Se borrarán todas las historias leídas y calificaciones.
+                  <br />
+                  <span className="mt-1 inline-block text-sm font-medium text-rose-600 dark:text-rose-400">
+                    Esta acción no se puede deshacer.
+                  </span>
+                </p>
+              </div>
+
+              <div className="flex gap-3 px-6 py-5">
+                <motion.button
+                  whileHover={{ scale: 1.03 }}
+                  whileTap={{ scale: 0.97 }}
+                  onClick={() => setShowResetConfirm(false)}
+                  className="flex flex-1 items-center justify-center gap-2 rounded-xl border-2 border-zinc-200 bg-white py-3 text-sm font-bold text-zinc-700 transition-colors hover:bg-zinc-50 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-200 dark:hover:bg-zinc-700"
+                >
+                  <X className="h-4 w-4" />
+                  Cancelar
+                </motion.button>
+                <motion.button
+                  whileHover={{ scale: 1.03 }}
+                  whileTap={{ scale: 0.97 }}
+                  onClick={resetAllStories}
+                  className="flex flex-1 items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-rose-500 to-red-600 py-3 text-sm font-bold text-white shadow-md shadow-rose-500/30 transition-shadow hover:shadow-lg hover:shadow-rose-500/50"
+                >
+                  <RotateCcw className="h-4 w-4" />
+                  Reiniciar todo
+                </motion.button>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       <div className="relative mx-auto max-w-3xl overflow-hidden rounded-2xl shadow-2xl">
         {/* Fondo decorativo superior */}
