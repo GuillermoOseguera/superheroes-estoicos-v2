@@ -1,16 +1,30 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import { useState } from "react";
 import Image from "next/image";
 import { motion, AnimatePresence } from "framer-motion";
-import { useRouter } from "next/navigation";
-import { toast } from "sonner";
 import { Heart, Swords, Shield, Zap, RotateCcw } from "lucide-react";
+import { toast } from "sonner";
 import { getRandomVirtueChallenge, type VirtueChallenge, type Virtue } from "@/lib/data-virtues";
 import { useProfile } from "@/lib/profile-store";
 import { addGameXP, addVirtueXP } from "@/lib/supabase";
 import { triggerAchievementAnimation } from "@/lib/confetti";
 import confetti from "canvas-confetti";
+import { RELIC_ASSETS, registerShadowDefeat, unlockRelic } from "@/lib/relic-vault";
+
+const VIRTUE_REASONING: Record<Virtue, string> = {
+  sabiduria: "porque aquí hacía falta pensar con perspectiva antes de reaccionar",
+  coraje: "porque aquí lo correcto daba miedo y había que actuar a pesar de eso",
+  justicia: "porque aquí el centro era hacer lo correcto y proteger a otro",
+  templanza: "porque aquí el verdadero enemigo era el impulso del momento",
+};
+
+const WRONG_VIRTUE_LIMIT: Record<Virtue, string> = {
+  sabiduria: "te ayuda a pensar mejor, pero si no actúas con firmeza o rectitud se queda corta",
+  coraje: "te impulsa a actuar, pero sin reflexión puede volverse impulso ciego",
+  justicia: "apunta a lo correcto, pero sin autocontrol o perspectiva puede llegar tarde",
+  templanza: "te calma, pero no siempre basta cuando el reto exige dar la cara o decidir con criterio",
+};
 
 const VIRTUE_ASSETS: Record<Virtue, { src: string; bgColor: string; borderColor: string; textColor: string; label: string; icon: string }> = {
   sabiduria: {
@@ -56,14 +70,13 @@ const BOSSES = [
 ];
 
 export function DesafioVirtudes() {
-  const router = useRouter();
   const { activeProfile, refreshProfile } = useProfile();
 
   // Battle State
   const [currentBossIndex, setCurrentBossIndex] = useState(0);
   const currentBoss = BOSSES[currentBossIndex];
   
-  const [challenge, setChallenge] = useState<VirtueChallenge | null>(null);
+  const [challenge, setChallenge] = useState<VirtueChallenge | null>(() => getRandomVirtueChallenge());
   const [bossHp, setBossHp] = useState(BOSSES[0].maxHp);
   const [playerHp, setPlayerHp] = useState(3);
   const [feedback, setFeedback] = useState<{ isCorrect: boolean; message: string; virtueUsed?: Virtue } | null>(null);
@@ -76,11 +89,7 @@ export function DesafioVirtudes() {
 
   // Stats
   const [xpEarnedSession, setXpEarnedSession] = useState(0);
-
-  useEffect(() => {
-    loadNewChallenge();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  const [relicNotice, setRelicNotice] = useState<{ title: string; message: string } | null>(null);
 
   const loadNewChallenge = () => {
     setChallenge(getRandomVirtueChallenge());
@@ -143,7 +152,7 @@ export function DesafioVirtudes() {
 
         setFeedback({
           isCorrect: false,
-          message: `El escudo de ${VIRTUE_ASSETS[selectedVirtue].label} falló... Necesitabas la ${VIRTUE_ASSETS[challenge.correctVirtue].label}.`,
+          message: `El escudo de ${VIRTUE_ASSETS[selectedVirtue].label} falló: ${WRONG_VIRTUE_LIMIT[selectedVirtue]}. Aquí ganaba ${VIRTUE_ASSETS[challenge.correctVirtue].label} ${VIRTUE_REASONING[challenge.correctVirtue]}.`,
           virtueUsed: selectedVirtue
         });
 
@@ -177,6 +186,25 @@ export function DesafioVirtudes() {
     setTimeout(() => {
       confetti({ particleCount: 200, spread: 120, origin: { y: 0.5 } });
     }, 500);
+
+    if (activeProfile) {
+      const defeats = registerShadowDefeat(activeProfile.id, currentBoss.id);
+      const imageRelic = RELIC_ASSETS.find((asset) => asset.id === "escudo_logica_ilustracion");
+      const videoRelic = RELIC_ASSETS.find((asset) => asset.id === "escudo_logica_archivo");
+
+      if (imageRelic?.unlockRule?.defeatsRequired && defeats >= imageRelic.unlockRule.defeatsRequired) {
+        const newImageUnlock = unlockRelic(activeProfile.id, imageRelic.id);
+        const newVideoUnlock = videoRelic ? unlockRelic(activeProfile.id, videoRelic.id) : false;
+
+        if (newImageUnlock || newVideoUnlock) {
+          const message = `Has derrotado ${imageRelic.unlockRule.defeatsRequired} veces a ${currentBoss.name}. Se desbloquearon una reliquia visual y un archivo de video en la Bóveda.`;
+          setRelicNotice({ title: "Archivo Desbloqueado", message });
+          toast.success("🏛️ Nuevo archivo desbloqueado", {
+            description: message,
+          });
+        }
+      }
+    }
   };
 
   const handleDefeat = () => {
@@ -259,6 +287,52 @@ export function DesafioVirtudes() {
       <h2 className="font-display" style={{ fontSize: 32, fontWeight: 800, color: "#1e293b", textAlign: "center", marginBottom: 8 }}>
         El Desafío de las 4 Virtudes ⚔️
       </h2>
+
+      <AnimatePresence>
+        {relicNotice && (
+          <motion.div
+            initial={{ opacity: 0, y: -14, scale: 0.96 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: -10, scale: 0.98 }}
+            style={{
+              margin: "0 auto 20px",
+              maxWidth: 760,
+              borderRadius: 18,
+              padding: "16px 18px",
+              background: "linear-gradient(135deg, rgba(212,160,23,0.16), rgba(245,158,11,0.12))",
+              border: "1px solid rgba(212,160,23,0.45)",
+              boxShadow: "0 16px 30px rgba(212,160,23,0.18)",
+            }}
+          >
+            <div style={{ display: "flex", justifyContent: "space-between", gap: 14, alignItems: "start" }}>
+              <div>
+                <div style={{ fontSize: 12, fontWeight: 900, letterSpacing: "0.08em", textTransform: "uppercase", color: "#92400e", marginBottom: 4 }}>
+                  {relicNotice.title}
+                </div>
+                <div style={{ fontSize: 15, lineHeight: 1.6, color: "#451a03", fontWeight: 600 }}>
+                  {relicNotice.message}
+                </div>
+              </div>
+              <button
+                onClick={() => setRelicNotice(null)}
+                style={{
+                  border: "none",
+                  background: "rgba(146,64,14,0.1)",
+                  color: "#92400e",
+                  borderRadius: 999,
+                  width: 30,
+                  height: 30,
+                  fontWeight: 800,
+                  cursor: "pointer",
+                  flexShrink: 0,
+                }}
+              >
+                ×
+              </button>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
       <p style={{ textAlign: "center", color: "#64748b", fontSize: 16, maxWidth: 600, margin: "0 auto 24px" }}>
         ¡Las Sombras Oscuras (emociones descontroladas) intentan dominar tu mente! Defiéndete eligiendo la virtud (arma) correcta para cada ataque.
       </p>

@@ -1,7 +1,5 @@
 "use client";
 
-import { useState } from "react";
-import { motion } from "framer-motion";
 import { VisorHistorias } from "@/components/juegos/visor-historias";
 
 export default function HistoriasPage() {

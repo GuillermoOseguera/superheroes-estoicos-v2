@@ -9,6 +9,7 @@ import { ChevronRight, ChevronLeft, BookOpen, Star, CheckCircle2 } from "lucide-
 import { useProfile } from "@/lib/profile-store";
 import { addVirtueXP } from "@/lib/supabase";
 import { toast } from "sonner";
+import { getRequiredLevelForStory, isUnlocked } from "@/lib/progression";
 
 // Shuffle helper (Fisher-Yates)
 function shuffleArray<T>(arr: T[]): T[] {
@@ -33,6 +34,12 @@ export function VisorHistorias() {
 
   // Shuffled stories - memoized so they stay consistent during the session
   const shuffledStories = useMemo(() => shuffleArray(STORIES), []);
+  const storiesWithProgress = useMemo(() => {
+    return shuffledStories.map((story, index) => ({
+      ...story,
+      requiredLevel: getRequiredLevelForStory(story.id, index),
+    }));
+  }, [shuffledStories]);
 
   // Dynamic LocalStorage keys using profile ID
   const LS_READ_KEY = useMemo(() => `estoico_stories_read_${activeProfile?.id || "anon"}`, [activeProfile?.id]);
@@ -120,19 +127,21 @@ export function VisorHistorias() {
   }, [ratings, readIds, persistRatings, markAsRead]);
 
   const handleNext = () => {
-    setCurrentIndex((prev) => (prev + 1) % shuffledStories.length);
+    setCurrentIndex((prev) => (prev + 1) % storiesWithProgress.length);
     setHoverStar(0);
   };
 
   const handlePrev = () => {
-    setCurrentIndex((prev) => (prev - 1 + shuffledStories.length) % shuffledStories.length);
+    setCurrentIndex((prev) => (prev - 1 + storiesWithProgress.length) % storiesWithProgress.length);
     setHoverStar(0);
   };
 
-  const story = shuffledStories[currentIndex];
+  const story = storiesWithProgress[currentIndex];
   const isRead = readIds.has(story.id);
   const currentRating = ratings[story.id] || 0;
   const totalRead = readIds.size;
+  const currentLevel = activeProfile?.level ?? 1;
+  const locked = !isUnlocked(story.requiredLevel, currentLevel);
 
   const colorVariants: Record<string, string> = {
     cyan: "from-cyan-500 to-blue-500 dark:from-cyan-600 dark:to-blue-600",
@@ -190,8 +199,13 @@ export function VisorHistorias() {
       <div className="relative mx-auto max-w-3xl overflow-hidden rounded-2xl shadow-2xl">
         {/* Fondo decorativo superior */}
         <div className={`h-40 w-full bg-gradient-to-r ${bgGradient} p-6 pb-16 transition-colors duration-500 relative`}>
+          {locked && (
+            <div className="absolute left-4 top-4 rounded-full bg-slate-900/80 px-3 py-1.5 text-xs font-bold text-white shadow-md">
+              🔒 Se desbloquea en nivel {story.requiredLevel}
+            </div>
+          )}
           {/* Read badge */}
-          {isRead && (
+          {isRead && !locked && (
             <motion.div
               initial={{ scale: 0 }}
               animate={{ scale: 1 }}
@@ -229,25 +243,40 @@ export function VisorHistorias() {
                 <h3 className="mb-6 text-center text-2xl font-black text-zinc-900 dark:text-zinc-100 md:text-3xl">
                   {story.title}
                 </h3>
-                
-                <div className="space-y-4 text-lg leading-relaxed text-zinc-700 dark:text-zinc-300">
-                  {story.paragraphs.map((p, idx) => (
-                    <p key={idx} dangerouslySetInnerHTML={{ __html: p }} />
-                  ))}
-                </div>
+
+                {locked ? (
+                  <div className="rounded-2xl border border-dashed border-slate-300 bg-slate-50 p-8 text-center dark:border-zinc-700 dark:bg-zinc-900">
+                    <div className="mb-3 text-5xl">🔐</div>
+                    <p className="text-lg font-bold text-slate-800 dark:text-zinc-100">
+                      Esta historia aún está sellada.
+                    </p>
+                    <p className="mt-3 text-base leading-relaxed text-slate-600 dark:text-zinc-300">
+                      Sigue entrenando hasta el nivel {story.requiredLevel} para desbloquearla. La progresión ahora abre nuevos relatos y crea una razón real para volver.
+                    </p>
+                  </div>
+                ) : (
+                  <div className="space-y-4 text-lg leading-relaxed text-zinc-700 dark:text-zinc-300">
+                    {story.paragraphs.map((p, idx) => (
+                      <p key={idx} dangerouslySetInnerHTML={{ __html: p }} />
+                    ))}
+                  </div>
+                )}
               </div>
 
-              <div className="mt-8 rounded-xl bg-amber-50 p-5 shadow-inner dark:bg-amber-950/20 border border-amber-100 dark:border-amber-900/50">
-                <p className="text-center font-bold text-amber-800 dark:text-amber-400">
-                  ⚡ Enseñanza del Héroe:
-                </p>
-                <p className="mt-2 text-center text-amber-900 dark:text-amber-200 italic">
-                  &quot;{story.lesson}&quot;
-                </p>
-              </div>
+              {!locked && (
+                <div className="mt-8 rounded-xl bg-amber-50 p-5 shadow-inner dark:bg-amber-950/20 border border-amber-100 dark:border-amber-900/50">
+                  <p className="text-center font-bold text-amber-800 dark:text-amber-400">
+                    ⚡ Enseñanza del Héroe:
+                  </p>
+                  <p className="mt-2 text-center text-amber-900 dark:text-amber-200 italic">
+                    &quot;{story.lesson}&quot;
+                  </p>
+                </div>
+              )}
 
               {/* Star Rating */}
-              <div className="mt-6 flex flex-col items-center gap-2">
+              {!locked && (
+                <div className="mt-6 flex flex-col items-center gap-2">
                 <p className="text-sm font-semibold text-zinc-500 dark:text-zinc-400">
                   ¿Qué te pareció esta historia?
                 </p>
@@ -285,6 +314,7 @@ export function VisorHistorias() {
                   </motion.span>
                 )}
               </div>
+              )}
             </motion.div>
           </AnimatePresence>
         </div>
@@ -295,7 +325,7 @@ export function VisorHistorias() {
             <ChevronLeft className="h-4 w-4" /> Anterior
           </Button>
           <span className="text-sm font-medium text-zinc-500 dark:text-zinc-400">
-            Historia {currentIndex + 1} de {shuffledStories.length}
+            Historia {currentIndex + 1} de {storiesWithProgress.length}
           </span>
           <Button variant="outline" size="sm" onClick={handleNext} className="gap-2">
             Siguiente <ChevronRight className="h-4 w-4" />

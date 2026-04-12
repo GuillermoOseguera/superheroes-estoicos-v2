@@ -5,6 +5,7 @@ import { motion } from "framer-motion";
 import Link from "next/link";
 import { useProfile } from "@/lib/profile-store";
 import { useEffect } from "react";
+import { getRequiredLevelForGame, isUnlocked } from "@/lib/progression";
 
 const XP_AWARD = 25;
 
@@ -28,6 +29,7 @@ const GAMES = [
     color: "#f59e0b",
     xp: "15 XP por acierto",
     virtue: "Sabiduría",
+    requiredLevel: getRequiredLevelForGame("desafio-virtudes"),
   },
   {
     id: "memoria-estoica",
@@ -38,7 +40,7 @@ const GAMES = [
     color: "#8b5cf6",
     xp: "Variable (Gana XP según tus movimientos)",
     virtue: "Prudencia",
-    locked: false,
+    requiredLevel: getRequiredLevelForGame("memoria-estoica"),
   },
   {
     id: "semaforo-emocional",
@@ -49,7 +51,7 @@ const GAMES = [
     color: "#22c55e",
     xp: "15 XP por registro",
     virtue: "Múltiples",
-    locked: false,
+    requiredLevel: getRequiredLevelForGame("semaforo-emocional"),
   },
   {
     id: "defensor-mente",
@@ -60,7 +62,7 @@ const GAMES = [
     color: "#ef4444",
     xp: "20 XP por superarlo",
     virtue: "Fortaleza",
-    locked: false,
+    requiredLevel: getRequiredLevelForGame("defensor-mente"),
   },
   {
     id: "constructor-escudo",
@@ -71,17 +73,18 @@ const GAMES = [
     color: "#d4a017",
     xp: `${XP_AWARD} XP al completar`,
     virtue: "Justicia",
-    locked: false,
+    requiredLevel: getRequiredLevelForGame("constructor-escudo"),
   },
 ];
 
 export default function JuegosPage() {
   const { activeProfile } = useProfile();
   const router = useRouter();
+  const currentLevel = activeProfile?.level ?? 1;
 
   useEffect(() => {
     if (!activeProfile) router.replace("/select-hero");
-  }, [activeProfile]);
+  }, [activeProfile, router]);
 
   return (
     <div>
@@ -119,17 +122,17 @@ export default function JuegosPage() {
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: i * 0.08 }}
           >
-            {game.locked ? (
+            {!isUnlocked(game.requiredLevel ?? 1, currentLevel) ? (
               <div
                 className="game-card"
                 style={{ opacity: 0.5, cursor: "not-allowed", filter: "grayscale(0.4)" }}
               >
-                <GameCardContent game={game} />
+                <GameCardContent game={game} currentLevel={currentLevel} />
               </div>
             ) : (
               <Link href={game.href} style={{ textDecoration: "none" }}>
                 <div className="game-card">
-                  <GameCardContent game={game} />
+                  <GameCardContent game={game} currentLevel={currentLevel} />
                 </div>
               </Link>
             )}
@@ -140,7 +143,9 @@ export default function JuegosPage() {
   );
 }
 
-function GameCardContent({ game }: { game: typeof GAMES[0] }) {
+function GameCardContent({ game, currentLevel }: { game: typeof GAMES[0]; currentLevel: number }) {
+  const locked = !isUnlocked(game.requiredLevel ?? 1, currentLevel);
+
   return (
     <>
       <div style={{ display: "flex", alignItems: "center", gap: 14, marginBottom: 12 }}>
@@ -170,18 +175,33 @@ function GameCardContent({ game }: { game: typeof GAMES[0] }) {
       <p style={{ color: "#64748b", fontSize: 13, marginBottom: 12, lineHeight: 1.5 }}>
         {game.description}
       </p>
-      <div
-        style={{
-          background: `${game.color}15`,
-          borderRadius: 8,
-          padding: "4px 10px",
-          fontSize: 12,
-          fontWeight: 600,
-          color: game.color,
-          display: "inline-block",
-        }}
-      >
-        🌟 {game.xp}
+      <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+        <div
+          style={{
+            background: `${game.color}15`,
+            borderRadius: 8,
+            padding: "4px 10px",
+            fontSize: 12,
+            fontWeight: 600,
+            color: game.color,
+            display: "inline-block",
+          }}
+        >
+          🌟 {game.xp}
+        </div>
+        <div
+          style={{
+            background: locked ? "#fee2e2" : "#dcfce7",
+            color: locked ? "#b91c1c" : "#166534",
+            borderRadius: 8,
+            padding: "4px 10px",
+            fontSize: 12,
+            fontWeight: 700,
+            display: "inline-block",
+          }}
+        >
+          {locked ? `🔒 Nivel ${game.requiredLevel}` : "✅ Desbloqueado"}
+        </div>
       </div>
     </>
   );

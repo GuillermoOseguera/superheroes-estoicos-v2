@@ -14,6 +14,22 @@ import {
   levelFromXP,
 } from "@/lib/supabase";
 import { ALL_ACHIEVEMENTS, type Achievement } from "@/lib/data-logros";
+import {
+  getCurrentMilestone,
+  getMilestoneStorageKey,
+  getNextMilestone,
+  type LevelMilestone,
+} from "@/lib/level-milestones";
+import { LevelMilestoneModal } from "@/components/game/LevelMilestoneModal";
+
+interface MissionRow {
+  id: string;
+}
+
+interface UnlockedAchievementRow {
+  achievement_id: string;
+  unlocked_at: string;
+}
 
 // ── Virtue radar (SVG) ──────────────────────────────────────────
 function VirtueRadar({ virtues }: { virtues: UserVirtues | null }) {
@@ -132,6 +148,7 @@ export default function HomePage() {
   const [completedToday, setCompletedToday] = useState(0);
   const [recentLogros, setRecentLogros] = useState<Achievement[]>([]);
   const [hasNoLogros, setHasNoLogros] = useState(false);
+  const [milestoneModal, setMilestoneModal] = useState<LevelMilestone | null>(null);
 
   useEffect(() => {
     if (!activeProfile) {
@@ -146,8 +163,8 @@ export default function HomePage() {
       .select("*")
       .eq("user_id", activeProfile.id)
       .single()
-      .then(({ data }: any) => {
-        if (data) setVirtues(data as UserVirtues);
+      .then((response: { data: UserVirtues | null }) => {
+        if (response.data) setVirtues(response.data);
       });
 
     // Count missions done today
@@ -158,8 +175,8 @@ export default function HomePage() {
       .eq("user_id", activeProfile.id)
       .eq("mission_date", today)
       .eq("is_completed", true)
-      .then(({ data }: any) => {
-        setCompletedToday(data?.length ?? 0);
+      .then((response: { data: MissionRow[] | null }) => {
+        setCompletedToday(response.data?.length ?? 0);
       });
 
     // Fetch recent achievements
@@ -169,9 +186,11 @@ export default function HomePage() {
       .eq("user_id", activeProfile.id)
       .order("unlocked_at", { ascending: false })
       .limit(3)
-      .then(({ data }: any) => {
-        if (data && data.length > 0) {
-          const mapped = data.map((d: any) => ALL_ACHIEVEMENTS.find(a => a.id === d.achievement_id)).filter(Boolean) as Achievement[];
+      .then((response: { data: UnlockedAchievementRow[] | null }) => {
+        if (response.data && response.data.length > 0) {
+          const mapped = response.data
+            .map((achievement) => ALL_ACHIEVEMENTS.find((item) => item.id === achievement.achievement_id))
+            .filter(Boolean) as Achievement[];
           setRecentLogros(mapped);
           setHasNoLogros(false);
         } else {
@@ -179,7 +198,24 @@ export default function HomePage() {
           setHasNoLogros(true);
         }
       });
-  }, [activeProfile?.id]);
+  }, [activeProfile, refreshProfile, router]);
+
+  useEffect(() => {
+    if (!activeProfile) return;
+
+    const level = levelFromXP(activeProfile.total_xp);
+    const currentMilestone = getCurrentMilestone(activeProfile.id, level);
+    const storageKey = getMilestoneStorageKey(activeProfile.id);
+    const lastSeenMilestoneId = localStorage.getItem(storageKey);
+
+    if (lastSeenMilestoneId === currentMilestone.id) return;
+
+    const timeoutId = window.setTimeout(() => {
+      setMilestoneModal(currentMilestone);
+    }, 600);
+
+    return () => window.clearTimeout(timeoutId);
+  }, [activeProfile]);
 
   if (!activeProfile) return null;
 
@@ -199,9 +235,24 @@ export default function HomePage() {
     "00000000-0000-0000-0000-000000000003": "🏛️",
   };
   const heroEmoji = HERO_EMOJIS[activeProfile.id] ?? "🦸";
+  const currentMilestone = getCurrentMilestone(activeProfile.id, level);
+  const nextMilestone = getNextMilestone(activeProfile.id, level);
+
+  const handleCloseMilestoneModal = () => {
+    if (!activeProfile || !milestoneModal) return;
+    localStorage.setItem(getMilestoneStorageKey(activeProfile.id), milestoneModal.id);
+    setMilestoneModal(null);
+  };
 
   return (
     <div>
+      <LevelMilestoneModal
+        open={Boolean(milestoneModal)}
+        milestone={milestoneModal}
+        nextMilestone={nextMilestone}
+        onClose={handleCloseMilestoneModal}
+      />
+
       {/* Header */}
       <div className="main-header" style={{ marginLeft: -24, marginRight: -24, marginTop: -24, marginBottom: 24, padding: "16px 24px", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
         <div>
@@ -368,6 +419,22 @@ export default function HomePage() {
             >
               ¡{activeProfile.name}!
             </h2>
+            <div
+              style={{
+                marginTop: 10,
+                display: "inline-flex",
+                alignItems: "center",
+                gap: 8,
+                padding: "6px 12px",
+                borderRadius: 999,
+                background: `linear-gradient(135deg, ${currentMilestone.accentFrom}18, ${currentMilestone.accentTo}22)`,
+                color: currentMilestone.accentTo,
+                fontSize: 12,
+                fontWeight: 800,
+              }}
+            >
+              ✨ {currentMilestone.badge}
+            </div>
           </div>
 
           {/* Avatar grande animado (Sistema 2D Modular) */}

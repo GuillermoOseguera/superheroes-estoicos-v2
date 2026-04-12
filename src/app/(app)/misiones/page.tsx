@@ -1,81 +1,84 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { motion } from "framer-motion";
 import { toast } from "sonner";
 import { useRouter } from "next/navigation";
 import { useProfile } from "@/lib/profile-store";
-import { completeMission, supabase } from "@/lib/supabase";
+import { completeMission, levelFromXP, supabase, type UserVirtues } from "@/lib/supabase";
+import { getDynamicMissions } from "@/lib/dynamic-missions";
+import { VIRTUE_LABELS } from "@/lib/progression";
 
-const MISIONES = [
-  {
-    id: "m1",
-    titulo: "El Diario del Héroe 📓",
-    xp: 50,
-    emoji: "📓",
-    descripcion: "Cada noche, responde estas tres preguntas en un cuaderno:",
-    items: [
-      "¿Qué hice bien hoy? (¡Celebra tus victorias!)",
-      "¿Qué podría hacer mejor mañana? (¡Siempre aprendiendo!)",
-      "¿Por qué cosa estoy agradecido? (¡Encuentra lo bueno!)",
-    ],
-    requireNotes: true,
-  },
-  {
-    id: "m2",
-    titulo: "El Juego de '¿Y Qué Si?' 🤔",
-    xp: 40,
-    emoji: "🤔",
-    descripcion: "Cuando algo te preocupa, recuerda este diálogo interior:",
-    items: [
-      "Tú: 'Me preocupa reprobar el examen.'",
-      "Pregúntate: '¿Y qué si repruebo?'",
-      "Tú: 'Estudiaré más la próxima vez.'",
-      "¿Eso sería el fin del mundo? ¡No!",
-    ],
-    requireNotes: false,
-  },
-  {
-    id: "m3",
-    titulo: "Misión Secreta de Bondad 🤫",
-    xp: 100,
-    emoji: "🤫",
-    descripcion: "Haz algo bueno por alguien sin que nadie se entere. Puede ser:",
-    items: [
-      "Ayudar a un compañero con su tarea.",
-      "Recoger algo que se le cayó a alguien.",
-      "Decir algo amable a alguien que lo necesita.",
-      "¡Compartir tu merienda!",
-    ],
-    requireNotes: false,
-  },
-];
+interface CompletedMissionRow {
+  mission_id: string;
+}
+
+interface LatestGameRow {
+  game_id: string;
+}
 
 export default function MisionesPage() {
   const { activeProfile, refreshProfile } = useProfile();
   const router = useRouter();
   const [completadas, setCompletadas] = useState<Record<string, boolean>>({});
   const [notes, setNotes] = useState<Record<string, string>>({});
-  const [expanded, setExpanded] = useState<string | null>("m1");
+  const [expanded, setExpanded] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState<string | null>(null);
+  const [virtues, setVirtues] = useState<UserVirtues | null>(null);
+  const [latestGameId, setLatestGameId] = useState<string | null>(null);
+
+  const misiones = useMemo(() => {
+    if (!activeProfile) return [];
+    return getDynamicMissions({
+      virtues,
+      latestGameId,
+      currentLevel: levelFromXP(activeProfile.total_xp),
+    });
+  }, [activeProfile, latestGameId, virtues]);
 
   useEffect(() => {
     if (!activeProfile) { router.replace("/select-hero"); return; }
     const today = new Date().toISOString().split("T")[0];
-    supabase
-      .from("daily_missions")
-      .select("mission_id")
-      .eq("user_id", activeProfile.id)
-      .eq("mission_date", today)
-      .eq("is_completed", true)
-      .then(({ data }: any) => {
-        if (data) {
-          const done: Record<string, boolean> = {};
-          data.forEach((r: any) => { done[r.mission_id] = true; });
-          setCompletadas(done);
-        }
-      });
-  }, [activeProfile?.id]);
+    Promise.all([
+      supabase
+        .from("daily_missions")
+        .select("mission_id")
+        .eq("user_id", activeProfile.id)
+        .eq("mission_date", today)
+        .eq("is_completed", true),
+      supabase
+        .from("user_virtues")
+        .select("*")
+        .eq("user_id", activeProfile.id)
+        .single(),
+      supabase
+        .from("game_results")
+        .select("game_id")
+        .eq("user_id", activeProfile.id)
+        .not("game_id", "like", "mission_%")
+        .order("completed_at", { ascending: false })
+        .limit(1)
+        .maybeSingle(),
+    ]).then(([missionsRes, virtuesRes, gameRes]) => {
+      if (missionsRes?.data) {
+        const done: Record<string, boolean> = {};
+        (missionsRes.data as CompletedMissionRow[]).forEach((mission) => { done[mission.mission_id] = true; });
+        setCompletadas(done);
+      }
+
+      if (virtuesRes?.data) {
+        setVirtues(virtuesRes.data as UserVirtues);
+      }
+
+      setLatestGameId((gameRes?.data as LatestGameRow | null)?.game_id ?? null);
+    });
+  }, [activeProfile, router]);
+
+  useEffect(() => {
+    if (misiones.length > 0 && !expanded) {
+      setExpanded(misiones[0].id);
+    }
+  }, [expanded, misiones]);
 
   const handleCompletar = async (misionId: string, xp: number) => {
     if (completadas[misionId] || !activeProfile || submitting) return;
@@ -95,7 +98,7 @@ export default function MisionesPage() {
     }
   };
 
-  const totalXp = MISIONES.filter((m) => completadas[m.id]).reduce((sum, m) => sum + m.xp, 0);
+  const totalXp = misiones.filter((m) => completadas[m.id]).reduce((sum, m) => sum + m.xp, 0);
 
   return (
     <div>
@@ -109,7 +112,7 @@ export default function MisionesPage() {
           <h2 className="font-display" style={{ fontSize: 26, fontWeight: 700, marginBottom: 4 }}>
             🎯 Entrenamiento de Héroe
           </h2>
-          <p style={{ color: "#64748b" }}>Completa tus misiones diarias para ganar XP</p>
+          <p style={{ color: "#64748b" }}>Misiones generadas según tu virtud más débil y tu entrenamiento más reciente.</p>
         </div>
         {totalXp > 0 && (
           <div style={{
@@ -126,7 +129,7 @@ export default function MisionesPage() {
       </div>
 
       <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
-        {MISIONES.map((mision, i) => (
+        {misiones.map((mision, i) => (
           <motion.div
             key={mision.id}
             initial={{ opacity: 0, y: 20 }}
@@ -164,6 +167,18 @@ export default function MisionesPage() {
                 <span style={{ fontWeight: 700, fontSize: 16, color: "#1e293b" }}>
                   {mision.titulo}
                 </span>
+                {mision.focusVirtue && (
+                  <span style={{
+                    background: "#ede9fe",
+                    color: "#6d28d9",
+                    borderRadius: 20,
+                    padding: "2px 10px",
+                    fontSize: 12,
+                    fontWeight: 700,
+                  }}>
+                    Refuerza {VIRTUE_LABELS[mision.focusVirtue]}
+                  </span>
+                )}
                 <span style={{
                   background: "#fef9c3",
                   color: "#92400e",

@@ -1,12 +1,14 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { supabase, type Profile, type GameResult, resetHeroProgress } from "@/lib/supabase";
-import { motion, AnimatePresence } from "framer-motion";
-import { Trash2, AlertTriangle, Clock, Target, XCircle, RotateCcw, BookOpen, Trophy, Gamepad, Activity, ShieldQuestion } from "lucide-react";
+import { motion } from "framer-motion";
+import { XCircle, RotateCcw, Activity, ShieldQuestion } from "lucide-react";
 import Image from "next/image";
 import { toast } from "sonner";
 import { useProfile } from "@/lib/profile-store";
+import { getStrongestVirtue, VIRTUE_LABELS } from "@/lib/progression";
+import type { UserVirtues } from "@/lib/supabase";
 
 interface HeroStats {
   profile: Profile;
@@ -24,20 +26,15 @@ interface HeroStats {
   colorTo: string;
   sparklinePoints: {x: number, y: number}[];
   activityMax: number;
+  strongestVirtue: string;
+  weeklyEmotionalLogs: number;
+  weeklyDominantEmotion: string;
 }
 
 const HERO_IMAGES: Record<string, string> = {
   "00000000-0000-0000-0000-000000000001": "/images/avatars/elias_base.png",
   "00000000-0000-0000-0000-000000000002": "/images/avatars/atenea_base.png",
   "00000000-0000-0000-0000-000000000003": "/images/avatars/marco_base.png",
-};
-
-const GAME_NAMES: Record<string, string> = {
-  "dos_cajas": "Las Dos Cajas",
-  "semaforo_emocional": "Semáforo Emocional",
-  "defensor_mente": "Defensor de la Mente",
-  "memoria_estoica": "Memoria Estoica",
-  "desafio_virtudes": "Desafío de Virtudes"
 };
 
 const ROLE_MAP: Record<string, { title: string, colorFrom: string, colorTo: string, shadow: string }> = {
@@ -50,16 +47,38 @@ const ROLE_MAP: Record<string, { title: string, colorFrom: string, colorTo: stri
   "default": { title: "Héroe en Entrenamiento", colorFrom: "#818cf8", colorTo: "#4338ca", shadow: "rgba(99,102,241,0.5)" }
 };
 
+const EMOTIONS_MAP: Record<string, string> = {
+  angry: "😡 Enojo",
+  sad: "😢 Tristeza",
+  anxious: "😰 Ansiedad",
+  frustrated: "😔 Frustración",
+  scared: "😨 Miedo",
+  neutral: "😐 Calma",
+  peaceful: "😌 Paz",
+  happy: "🙂 Alegría",
+};
+
+interface EmotionalLog {
+  id: string;
+  user_id: string;
+  emotion: string;
+  trigger_reason: string;
+  can_control: boolean;
+  virtue_selected: string;
+  action_plan: string;
+  created_at: string;
+}
+
 export default function EstadisticasPage() {
   const [stats, setStats] = useState<HeroStats[]>([]);
   const [loading, setLoading] = useState(true);
   const [flippedId, setFlippedId] = useState<string | null>(null);
   const [heroToReset, setHeroToReset] = useState<string | null>(null);
   
-  const [selectedLogs, setSelectedLogs] = useState<any[] | null>(null);
+  const [selectedLogs, setSelectedLogs] = useState<EmotionalLog[] | null>(null);
   const [viewingProfileName, setViewingProfileName] = useState("");
 
-  const { activeProfile, refreshProfile } = useProfile();
+  const { activeProfile, refreshProfile, activeAccount } = useProfile();
 
   const handleViewLogs = async (profileId: string) => {
     try {
@@ -74,24 +93,32 @@ export default function EstadisticasPage() {
       const p = stats.find(s => s.profile.id === profileId);
       setViewingProfileName(p?.profile.name || "Héroe");
       setSelectedLogs(data || []);
-    } catch (e) {
-      console.error(e);
+    } catch (error) {
+      console.error(error);
       toast.error("No se pudieron cargar los registros.");
     }
   };
 
-  useEffect(() => { loadStats(); }, []);
-
-  const loadStats = async () => {
+  const loadStats = useCallback(async () => {
+    if (!activeAccount) return;
     setLoading(true);
     try {
-      const { data: profilesData } = await supabase.from("profiles").select("*").order("name");
+      const { data: profilesData } = await supabase.from("profiles").select("*").eq("account_id", activeAccount.id).order("name");
       const { data: resultsData } = await supabase.from("game_results").select("*");
       const { data: achievementsData } = await supabase.from("unlocked_achievements").select("*");
+      const { data: virtuesData } = await supabase.from("user_virtues").select("*");
+      const weekAgo = new Date();
+      weekAgo.setDate(weekAgo.getDate() - 7);
+      const { data: emotionalLogsData } = await supabase
+        .from("emotional_logs")
+        .select("*")
+        .gte("created_at", weekAgo.toISOString());
 
       if (profilesData && resultsData) {
         const statsList: HeroStats[] = profilesData.map((profile: Profile) => {
           const userResults = resultsData.filter((r: GameResult) => r.user_id === profile.id);
+          const userVirtues = (virtuesData || []).find((v: UserVirtues) => v.user_id === profile.id) || null;
+          const userWeeklyLogs = ((emotionalLogsData || []) as EmotionalLog[]).filter((log) => log.user_id === profile.id);
           const aciertos = userResults.filter((r: GameResult) => r.xp_earned > 0).length;
           const errores = userResults.filter((r: GameResult) => r.xp_earned <= 0).length;
           const totalSesiones = userResults.length;
@@ -101,7 +128,7 @@ export default function EstadisticasPage() {
           try {
             const savedRatings = localStorage.getItem(`estoico_stories_ratings_${profile.id}`);
             if (savedRatings) booksRead = Object.keys(JSON.parse(savedRatings)).length;
-          } catch (e) {}
+          } catch {}
 
           const gameCounts: Record<string, number> = {};
           userResults.forEach((r: GameResult) => {
@@ -116,7 +143,13 @@ export default function EstadisticasPage() {
           }
           
           const roleConfig = ROLE_MAP[mostPlayedGameId] || ROLE_MAP["default"];
-          const userAchievements = achievementsData ? achievementsData.filter((a: any) => a.user_id === profile.id) : [];
+          const userAchievements = achievementsData ? achievementsData.filter((achievement: { user_id: string }) => achievement.user_id === profile.id) : [];
+          const strongestVirtueKey = getStrongestVirtue(userVirtues);
+          const weeklyEmotionCounts = userWeeklyLogs.reduce((acc: Record<string, number>, log) => {
+            acc[log.emotion] = (acc[log.emotion] || 0) + 1;
+            return acc;
+          }, {});
+          const weeklyDominantEmotion = Object.entries(weeklyEmotionCounts).sort((a, b) => b[1] - a[1])[0]?.[0] || "neutral";
 
           // Generar Sparkline (Últimos 7 días)
           const last7Days = Array.from({length: 7}).map((_, i) => {
@@ -138,7 +171,10 @@ export default function EstadisticasPage() {
             colorFrom: roleConfig.colorFrom,
             colorTo: roleConfig.colorTo,
             sparklinePoints,
-            activityMax
+            activityMax,
+            strongestVirtue: VIRTUE_LABELS[strongestVirtueKey],
+            weeklyEmotionalLogs: userWeeklyLogs.length,
+            weeklyDominantEmotion: EMOTIONS_MAP[weeklyDominantEmotion] || weeklyDominantEmotion,
           };
         });
         setStats(statsList);
@@ -148,7 +184,13 @@ export default function EstadisticasPage() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [activeAccount]);
+
+  useEffect(() => { 
+    if (activeAccount) {
+      loadStats(); 
+    }
+  }, [activeAccount, loadStats]);
 
   const handleResetConfirm = async (heroId: string, e: React.MouseEvent) => {
     e.stopPropagation(); // Evitar voltear la tarjeta
@@ -159,7 +201,7 @@ export default function EstadisticasPage() {
       toast.success("Progreso borrado correctamente", { icon: "🧹" });
       setHeroToReset(null);
       await loadStats(); 
-    } catch (error) {
+    } catch {
       toast.error("Ocurrió un error al intentar borrar el progreso");
     } finally {
       setLoading(false);
@@ -171,8 +213,8 @@ export default function EstadisticasPage() {
       {/* Header EdTech Moderno */}
       <div className="main-header" style={{ marginLeft: -24, marginRight: -24, marginTop: -24, marginBottom: 24, padding: "24px", background: "#0f172a", color: "white", display: "flex", justifyContent: "space-between", alignItems: "center", boxShadow: "0 10px 30px rgba(0,0,0,0.1)" }}>
         <div>
-          <div className="font-display" style={{ fontSize: 22, fontWeight: 800 }}>PANEL MAESTRO ESTOICO</div>
-          <div style={{ fontSize: 13, color: "#94a3b8" }}>Control de Progreso y Analíticas Estudiantiles</div>
+          <div className="font-display" style={{ fontSize: 22, fontWeight: 800 }}>PANEL FAMILIAR ESTOICO</div>
+          <div style={{ fontSize: 13, color: "#94a3b8" }}>Racha, virtudes y registros emocionales para acompañar mejor a cada héroe</div>
         </div>
         <div style={{ background: "rgba(255,255,255,0.1)", padding: "8px 16px", borderRadius: 20, fontSize: 12, fontWeight: 700, letterSpacing: 1 }}>
           SISTEMA DE CARTAS INTELIGENTES
@@ -246,6 +288,9 @@ export default function EstadisticasPage() {
                           <div className="font-display" style={{ fontSize: 22, fontWeight: 800, color: "#fef08a", textShadow: "0 2px 10px rgba(0,0,0,0.4)" }}>
                             {stat.roleTitle}
                           </div>
+                          <div style={{ marginTop: 10, fontSize: 12, opacity: 0.9 }}>
+                            🔥 Racha actual: {stat.profile.current_streak} días
+                          </div>
                         </div>
 
                         <div style={{ fontSize: 12, opacity: 0.7, fontWeight: 600, display: "flex", alignItems: "center", gap: 6 }}>
@@ -272,12 +317,23 @@ export default function EstadisticasPage() {
                           .stat-mini-lbl { font-size: 10px; font-weight: 700; color: #64748b; text-transform: uppercase; }
                         `}</style>
 
-                        {/* 4 Mini cuadros */}
+                        {/* 6 Mini cuadros */}
                         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8, marginBottom: 16 }}>
                           <div className="stat-mini-box"><div className="stat-mini-val text-blue-600">{stat.tiempoEstimadoMinutos}</div><div className="stat-mini-lbl">Minutos</div></div>
                           <div className="stat-mini-box"><div className="stat-mini-val text-amber-500">{stat.unlockedAchievementsCount}</div><div className="stat-mini-lbl">Logros</div></div>
                           <div className="stat-mini-box"><div className="stat-mini-val text-emerald-600">{stat.aciertos}</div><div className="stat-mini-lbl">Aciertos</div></div>
                           <div className="stat-mini-box"><div className="stat-mini-val text-rose-600">{stat.errores}</div><div className="stat-mini-lbl">Errores</div></div>
+                          <div className="stat-mini-box"><div className="stat-mini-val text-indigo-600" style={{ fontSize: 15 }}>{stat.strongestVirtue}</div><div className="stat-mini-lbl">Virtud Top</div></div>
+                          <div className="stat-mini-box"><div className="stat-mini-val text-cyan-600">{stat.weeklyEmotionalLogs}</div><div className="stat-mini-lbl">Logs Semana</div></div>
+                        </div>
+
+                        <div style={{ marginBottom: 16, borderRadius: 12, background: "#f8fafc", border: "1px solid #e2e8f0", padding: 12 }}>
+                          <div style={{ fontSize: 11, fontWeight: 700, color: "#64748b", marginBottom: 6, textTransform: "uppercase" }}>
+                            Lectura familiar rápida
+                          </div>
+                          <div style={{ fontSize: 13, color: "#0f172a", lineHeight: 1.5 }}>
+                            Virtud más trabajada: <strong>{stat.strongestVirtue}</strong>. Racha actual: <strong>{stat.profile.current_streak} días</strong>. Emoción dominante esta semana: <strong>{stat.weeklyDominantEmotion}</strong>.
+                          </div>
                         </div>
 
                         {/* SPARKLINE CHART (Actividad de 7 días) */}
@@ -363,8 +419,7 @@ export default function EstadisticasPage() {
                 </div>
               ) : (
                 <div className="space-y-4">
-                  {selectedLogs.map((log: any, idx: number) => {
-                    const EMOTIONS_MAP: Record<string, string> = { angry: "😡 Enojo", sad: "😢 Tristeza", anxious: "😰 Ansiedad", frustrated: "😔 Frustración", scared: "😨 Miedo", neutral: "😐 Calma" };
+                  {selectedLogs.map((log, idx: number) => {
                     return (
                       <div key={log.id || idx} className="p-5 rounded-2xl bg-slate-50 border border-slate-200 shadow-sm hover:shadow-md transition">
                         <div className="flex justify-between items-center mb-3">

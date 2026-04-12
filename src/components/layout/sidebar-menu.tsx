@@ -12,7 +12,7 @@ const NAV_ITEMS = [
   { href: "/historias", label: "Biblioteca", icon: BookOpen },
   { href: "/misiones", label: "Misiones", icon: Target },
   { href: "/logros", label: "Sala de Trofeos", icon: Trophy },
-  { href: "/estadisticas", label: "Estadísticas", icon: BarChart2 },
+  { href: "/estadisticas", label: "Panel Familiar", icon: BarChart2 },
 ];
 
 export function SidebarMenu() {
