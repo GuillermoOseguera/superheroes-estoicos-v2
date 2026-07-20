@@ -8,6 +8,35 @@ export interface Story {
   lesson: string;
 }
 
+export type StoryCategory = "elias" | "clasica" | "moderna" | "profunda";
+
+export const STORY_CATEGORY_LABELS: Record<StoryCategory, string> = {
+  elias: "De Elías",
+  clasica: "Clásicas Estoicas",
+  moderna: "Historias Modernas",
+  profunda: "Parábolas Profundas",
+};
+
+const CLASICA_IDS = new Set([
+  "epicteto", "marco_aurelio", "bambu", "granjero_roca", "seneca_ira",
+  "diogenes_linterna", "flecha_y_arbol", "zenon_naufragio", "cleantes_agua",
+  "socrates_tres_filtros", "caton_descalzo",
+]);
+
+const PROFUNDA_IDS = new Set([
+  "barco_tormenta", "dos_flechas", "arquero_ciego", "rey_tiempo", "mochila_piedras",
+  "caballo_salvaje", "vasija_rota", "pajaro_jaula", "mendigo_copa", "escultor_criticas",
+  "guerrero_impenetrable", "laberinto_respuestas", "arbol_frutos", "espejo_roto",
+  "reloj_arena_inverso", "eco_montana", "burro_pozo", "dos_semillas",
+]);
+
+export function getStoryCategory(storyId: string): StoryCategory {
+  if (storyId.startsWith("elias_")) return "elias";
+  if (CLASICA_IDS.has(storyId)) return "clasica";
+  if (PROFUNDA_IDS.has(storyId)) return "profunda";
+  return "moderna";
+}
+
 export const STORIES: Story[] = [
   // ═══════════════════════════════════════════════════════════════════════════
   // HISTORIAS DE ELÍAS (Personales, cercanas a su vida)
@@ -555,5 +584,187 @@ export const STORIES: Story[] = [
       "Él contestó: 'Ustedes sufren porque ven la arena de abajo como tiempo perdido y muerte. Yo la veo diferente. Esa arena acumulada abajo es lo único que verdaderamente es MÍO. Nadie me la puede quitar, ni los dioses ni los tiranos. Cada grano abajo representa algo que ya viví, amé, aprendí o superé. Entre más arena tengo, más rico soy en vida'. La historia nos recuerda que el pasado bien vivido no es tiempo perdido, es nuestro tesoro más inexpugnable."
     ],
     lesson: "Memento Mori (recuerda que eres mortal) no es para tener miedo, sino para vivir el hoy intensamente. El tiempo que ha pasado es seguro y es tuyo para siempre; no lo llores, celébralo."
+  },
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // NUEVAS HISTORIAS DE ELÍAS
+  // ═══════════════════════════════════════════════════════════════════════════
+  {
+    id: "elias_bicicleta",
+    title: "Elías y la Bicicleta sin Rueditas",
+    colorScheme: "sky",
+    paragraphs: [
+      "Llegó el día: papá le quitó las rueditas a la bicicleta de Elías. 'No estoy listo', dijo Elías mirando el pavimento. 'Me voy a caer'.",
+      "'Probablemente sí', respondió su papá con calma. 'Caerse es parte del plan. Lo que no es parte del plan es no intentarlo'.",
+      "Elías se cayó dos veces. La tercera vez, pedaleó cinco metros solo. La quinta vez, dio la vuelta a la cuadra completa. Esa noche entendió algo: el miedo no desapareció antes de intentarlo, desapareció DESPUÉS de intentarlo."
+    ],
+    lesson: "El coraje no es esperar a que se vaya el miedo. Es actuar con el miedo de copiloto hasta que se aburra y se baje."
+  },
+  {
+    id: "elias_tiempo_pantalla",
+    title: "Elías y el Minuto Más",
+    colorScheme: "indigo",
+    paragraphs: [
+      "'Cinco minutos más', pidió Elías cuando su mamá Jari le avisó que el tiempo de tablet había terminado. Luego pidió otros cinco. Y otros cinco.",
+      "Jari no se enojó. Solo le preguntó: '¿Quién está mandando ahora mismo: tú, o la tablet?'. Elías se quedó pensando. Él quería ser el que manda.",
+      "Al día siguiente, cuando sonó la alarma del tiempo, Elías apagó la tablet él solo, sin que nadie se lo pidiera. Se sintió raro... pero también se sintió fuerte. Como cuando ganas una batalla que nadie más puede ver."
+    ],
+    lesson: "La templanza es demostrarte a ti mismo quién manda. Cada vez que te dices 'no' a tiempo, tu voluntad sube de nivel."
+  },
+  {
+    id: "elias_apagon",
+    title: "Elías y la Noche del Apagón",
+    colorScheme: "amber",
+    paragraphs: [
+      "¡Zas! Se fue la luz en toda la colonia justo cuando Elías iba a ver su serie favorita. '¡No puede ser!', gritó. Su hermana Elisa empezó a quejarse también. La noche parecía arruinada.",
+      "Pero su abuela Estela encendió unas velas y dijo: 'Cuando yo era niña no había tablets. ¿Les enseño a jugar lotería con cartas de verdad?'.",
+      "Jugaron, contaron historias de miedo y se rieron hasta tarde. Cuando volvió la luz, Elías hizo algo extraño: pidió que apagaran la tele un rato más. La mejor noche de la semana no necesitó electricidad."
+    ],
+    lesson: "A veces lo que parece arruinar tu plan es la puerta a algo mejor. El sabio no pelea contra lo que pasó: busca el regalo escondido en el cambio."
+  },
+  {
+    id: "elias_companero_nuevo",
+    title: "Elías y la Banca Vacía",
+    colorScheme: "emerald",
+    paragraphs: [
+      "Llegó un niño nuevo al salón de Elías. Hablaba poco, traía una mochila vieja y en el recreo se sentaba solo. Algunos compañeros empezaron a ponerle apodos.",
+      "Elías no dijo nada el primer día. Ni el segundo. Pero algo por dentro le molestaba, como una piedrita en el zapato. Recordó su entrenamiento: 'La justicia no es solo no hacer daño. Es hacer el bien cuando puedes'.",
+      "El tercer día, Elías tomó su lonche y se sentó junto al niño nuevo. 'Hola, soy Elías. ¿Juegas fútbol?'. Los apodos se acabaron pronto: es difícil burlarse de alguien que ya tiene un amigo."
+    ],
+    lesson: "Quedarte callado frente a una injusticia también es una decisión. Un héroe usa su valentía para los que todavía no tienen la suya."
+  },
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // NUEVAS HISTORIAS CLÁSICAS ESTOICAS
+  // ═══════════════════════════════════════════════════════════════════════════
+  {
+    id: "zenon_naufragio",
+    title: "Zenón y el Naufragio Afortunado",
+    colorScheme: "cyan",
+    paragraphs: [
+      "Zenón era un comerciante riquísimo que transportaba un tinte púrpura carísimo en su barco. Una tormenta hundió el barco y toda su fortuna se fue al fondo del mar. Lo perdió TODO en una noche. 🌊",
+      "Náufrago y sin dinero, llegó a Atenas. Para pasar el tiempo entró a una librería, escuchó las ideas de los filósofos y algo hizo clic en su mente. Empezó a estudiar y años después fundó su propia escuela: el estoicismo.",
+      "Al final de su vida, Zenón bromeaba: 'Hice un viaje muy provechoso el día que naufragué'. La peor tragedia de su vida fue la puerta hacia su verdadero destino: sin ese naufragio, el estoicismo no existiría... ¡y esta app tampoco!"
+    ],
+    lesson: "Nunca sabes qué puerta abre una pérdida. Lo que hoy parece el fin de tu historia puede ser el capítulo uno de una mucho mejor."
+  },
+  {
+    id: "cleantes_agua",
+    title: "Cleantes, el Cargador de Agua",
+    colorScheme: "stone",
+    paragraphs: [
+      "Cleantes era un boxeador pobre que soñaba con estudiar filosofía en Atenas. Pero las clases eran de día y él no tenía dinero ni para comer. ¿Su solución? Trabajar de noche cargando agua para los jardines de la ciudad.",
+      "Todas las noches cargaba cubetas pesadas mientras otros dormían. Todas las mañanas, con sueño pero puntual, se sentaba a estudiar. Algunos se burlaban: 'El cargador de agua quiere ser sabio'.",
+      "Años después, Cleantes se convirtió en el director de la escuela estoica, el sucesor del mismísimo Zenón. Los que se burlaban quedaron olvidados; el nombre del cargador de agua sobrevivió más de dos mil años."
+    ],
+    lesson: "No necesitas condiciones perfectas para perseguir lo que quieres. Necesitas constancia cuando nadie te ve y nadie te aplaude."
+  },
+  {
+    id: "socrates_tres_filtros",
+    title: "Sócrates y los Tres Filtros",
+    colorScheme: "purple",
+    paragraphs: [
+      "Un hombre llegó corriendo con Sócrates: '¡Tengo que contarte algo que dicen de tu amigo!'. Sócrates lo detuvo con la mano: 'Espera. Antes de contármelo, pasemos tu chisme por tres filtros'.",
+      "'Primer filtro: la VERDAD. ¿Estás seguro de que lo que me vas a contar es cierto?'. El hombre dudó: 'Bueno, me lo contaron...'. 'Segundo filtro: la BONDAD. ¿Es algo bueno sobre mi amigo?'. 'Ehh, no, la verdad no'.",
+      "'Tercer filtro: la UTILIDAD. ¿Me sirve de algo saberlo?'. El hombre se quedó callado. 'Entonces', sonrió Sócrates, 'si no es verdad, ni bueno, ni útil... ¿para qué contarlo?'. El hombre se fue pensando, y el chisme murió ahí mismo."
+    ],
+    lesson: "Antes de repetir algo de alguien, pásalo por los tres filtros: ¿es verdad?, ¿es bueno?, ¿es útil? Si no pasa ninguno, no merece tu voz."
+  },
+  {
+    id: "caton_descalzo",
+    title: "Catón, el Senador Descalzo",
+    colorScheme: "orange",
+    paragraphs: [
+      "Catón era uno de los hombres más importantes de Roma. Podía vestir las túnicas más finas y comer los banquetes más lujosos. Pero a veces hacía algo rarísimo: salía a la calle descalzo y con ropa sencilla, aunque la gente se burlara.",
+      "¿Estaba loco? No. Estaba entrenando. Catón se acostumbraba a lo incómodo A PROPÓSITO, para que si algún día perdía sus lujos, no perdiera también su paz. Le quitaba el poder al 'qué dirán' burlándose él primero de sí mismo.",
+      "Cuando llegaron tiempos difíciles de verdad, mientras otros senadores entraban en pánico por perder sus comodidades, Catón permaneció firme como una roca. Llevaba años entrenando para eso."
+    ],
+    lesson: "Practica estar incómodo de vez en cuando (frío, aburrimiento, un 'no' a un antojo). Así, cuando la vida te quite algo, descubrirás que ya sabías vivir sin ello."
+  },
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // NUEVAS HISTORIAS MODERNAS
+  // ═══════════════════════════════════════════════════════════════════════════
+  {
+    id: "control_prestado",
+    title: "El Control Roto",
+    colorScheme: "rose",
+    paragraphs: [
+      "Iker le prestó su control favorito a su mejor amigo Beto. Al devolverlo, Beto tenía la cara pálida: 'Se me cayó... se le rompió el botón'. Iker sintió el enojo subir como lava.",
+      "Tenía dos caminos: explotar y quizás perder a su mejor amigo por un pedazo de plástico, o respirar y preguntar lo importante: '¿Fue un accidente o lo hiciste a propósito?'. 'Accidente, te lo juro', dijo Beto casi llorando.",
+      "'Los accidentes le pasan a cualquiera. A mí también me pudo pasar', dijo Iker. Beto ofreció pagarlo con sus ahorros y lo repararon juntos. El control quedó como nuevo. La amistad quedó más fuerte que antes."
+    ],
+    lesson: "Antes de explotar, pregunta: ¿fue maldad o fue un accidente? Los objetos se reparan o se reemplazan; la confianza de un buen amigo, no siempre."
+  },
+  {
+    id: "examen_copia",
+    title: "La Respuesta Susurrada",
+    colorScheme: "red",
+    paragraphs: [
+      "En pleno examen de ciencias, el compañero de al lado le susurró a Julia: 'Pásame la respuesta 5, no seas mala'. Julia sí se la sabía. Y el maestro no estaba mirando. Nadie se enteraría jamás.",
+      "Pero Julia pensó: 'Nadie... excepto yo'. Recordó que la justicia no es hacer lo correcto cuando te vigilan, sino cuando NADIE te vigila. Negó con la cabeza y siguió con su examen.",
+      "A la salida, su compañero estaba molesto. 'Te ayudo a estudiar hoy en la tarde, eso sí puedo hacer', le ofreció Julia. Y cumplió. En el siguiente examen, él aprobó solo, y le dio las gracias a ella."
+    ],
+    lesson: "Ayudar a alguien a hacer trampa no es ayudarlo: es dejarlo débil. La verdadera ayuda hace más fuerte al otro, no más dependiente."
+  },
+  {
+    id: "cartera_encontrada",
+    title: "La Cartera en el Estacionamiento",
+    colorScheme: "green",
+    paragraphs: [
+      "Saliendo del súper, Emiliano vio algo en el suelo: una cartera con billetes asomándose. Miró alrededor. Nadie lo había visto. Su mente hizo cuentas rapidísimo: 'Con esto me compro el juego que quiero...'.",
+      "Pero luego su mente hizo otra pregunta más lenta y más pesada: '¿Y si fuera la cartera de mi papá? ¿Y si ese dinero era para la comida de una familia?'.",
+      "Emiliano entregó la cartera en el mostrador del súper. No hubo recompensa, ni aplausos, ni foto en el periódico. Solo una sensación extraña y poderosa camino a casa: la de poder mirarse al espejo sin bajar la vista. Ese día no ganó un videojuego; ganó algo que ningún dinero compra."
+    ],
+    lesson: "Tu carácter es lo que haces cuando nadie te ve y nadie te va a premiar. Esa es la única audiencia que importa: tú mismo."
+  },
+  {
+    id: "plan_arruinado",
+    title: "El Día de Campo Bajo la Lluvia",
+    colorScheme: "cyan",
+    paragraphs: [
+      "La familia de Regina llevaba semanas planeando un día de campo: sándwiches, pelota, papalote. Al despertar ese sábado... lluvia. No una llovizna: ¡una tormenta de las buenas! Regina azotó la puerta de su cuarto, furiosa.",
+      "Su papá tocó y le dijo: 'Tenemos dos opciones: pasar el día enojados con las nubes, que ni se van a enterar... o hacer el día de campo aquí adentro'.",
+      "Pusieron una manta en la sala, comieron los sándwiches en el piso, construyeron una casa con cobijas y vieron la lluvia desde la ventana con chocolate caliente. Años después, Regina no recuerda ningún día de campo normal... pero jamás olvidó el de la sala."
+    ],
+    lesson: "Enojarte con lo que no controlas (como la lluvia) es desperdiciar tu energía. Adaptar el plan con alegría es un superpoder que puedes usar toda la vida."
+  },
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // NUEVAS PARÁBOLAS PROFUNDAS
+  // ═══════════════════════════════════════════════════════════════════════════
+  {
+    id: "eco_montana",
+    title: "El Niño y el Eco de la Montaña",
+    colorScheme: "fuchsia",
+    paragraphs: [
+      "Un niño caminaba con su padre por la montaña cuando tropezó y gritó de dolor: '¡Ayyy!'. Para su sorpresa, una voz lejana repitió: '¡Ayyy!'. Curioso, el niño gritó: '¡¿Quién eres?!'. La voz respondió: '¡¿Quién eres?!'.",
+      "Molesto, el niño gritó: '¡Cobarde!'. Y la montaña le devolvió: '¡Cobarde!'. El niño miró a su padre, confundido y enojado.",
+      "El padre sonrió y gritó a la montaña: '¡Te admiro!'. La voz respondió: '¡Te admiro!'. Gritó: '¡Eres un campeón!'. Y el eco repitió: '¡Eres un campeón!'. Entonces le explicó: 'Hijo, la vida es como este eco. Te devuelve lo que le das. Si das quejas, recibes razones para quejarte. Si das respeto y ánimo, eso mismo regresa a ti'."
+    ],
+    lesson: "El mundo funciona como un eco: suele devolverte la actitud que tú le entregas. Si no te gusta lo que recibes, revisa primero lo que estás gritando."
+  },
+  {
+    id: "burro_pozo",
+    title: "El Burro en el Pozo",
+    colorScheme: "stone",
+    paragraphs: [
+      "Un burro viejo cayó en un pozo seco y profundo. El granjero, pensando que era imposible sacarlo, tomó una decisión triste: taparía el pozo con tierra. Los vecinos empezaron a echar paladas de tierra sobre el pobre burro.",
+      "Al principio, el burro lloró desesperado sintiendo la tierra caer sobre su lomo. Pero de pronto, hizo algo que dejó a todos con la boca abierta: se sacudió la tierra de encima... y la pisó, quedando un poquito más arriba.",
+      "Palada tras palada, el burro repetía su fórmula mágica: sacudirse y dar un paso arriba. Sacudirse y dar un paso arriba. Lo que era para enterrarlo se convirtió en su escalera. Al final del día, el burro salió caminando del pozo por su propio pie."
+    ],
+    lesson: "La vida a veces te echa tierra encima. El secreto no es evitar que caiga, sino sacudírtela y usarla como escalón. Cada problema superado te deja un paso más arriba."
+  },
+  {
+    id: "dos_semillas",
+    title: "Las Dos Semillas",
+    colorScheme: "green",
+    paragraphs: [
+      "Dos semillas cayeron en la misma tierra fértil en primavera. La primera dijo: '¡Quiero crecer! Quiero que mis raíces bajen profundo y mis brotes rompan la tierra. Quiero sentir el sol en mis hojas y el rocío en mis pétalos'. Y creció, con esfuerzo y algo de dolor.",
+      "La segunda semilla dijo: 'Da miedo. Si mando raíces hacia abajo, ¿quién sabe qué hay en lo oscuro? Si empujo hacia arriba, puedo lastimarme. Si florezco, un niño podría arrancarme. Mejor espero a que sea seguro'. Y esperó. Y esperó.",
+      "Una gallina que picoteaba el jardín se la comió. La primera semilla, mientras tanto, ya era una flor que ni la lluvia ni el viento podían devolver bajo tierra.",
+      "Crecer siempre implica un riesgo. Pero no crecer implica uno mayor: desaparecer sin haber intentado nada. La comodidad total no existe; solo puedes elegir entre el riesgo de crecer o el riesgo de quedarte."
+    ],
+    lesson: "Esperar 'el momento perfecto y sin riesgos' es la trampa más vieja del miedo. El único momento seguro para crecer es ahora."
   }
 ];

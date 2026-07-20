@@ -4,10 +4,10 @@ import { useState, useEffect, useMemo, useCallback } from "react";
 import Image from "next/image";
 import { motion, AnimatePresence } from "framer-motion";
 import { Button } from "@/components/ui/button";
-import { STORIES } from "@/lib/data-stories";
+import { STORIES, getStoryCategory, STORY_CATEGORY_LABELS, type StoryCategory } from "@/lib/data-stories";
 import { ChevronRight, ChevronLeft, BookOpen, Star, CheckCircle2, RotateCcw, X, AlertTriangle } from "lucide-react";
 import { useProfile } from "@/lib/profile-store";
-import { addVirtueXP } from "@/lib/supabase";
+import { addVirtueXP, supabase } from "@/lib/supabase";
 import { toast } from "sonner";
 import { getRequiredLevelForStory, isUnlocked } from "@/lib/progression";
 
@@ -32,6 +32,8 @@ export function VisorHistorias() {
   const [hoverStar, setHoverStar] = useState(0);
   const [awardingXP, setAwardingXP] = useState(false);
   const [showResetConfirm, setShowResetConfirm] = useState(false);
+  const [categoryFilter, setCategoryFilter] = useState<StoryCategory | "todas">("todas");
+  const [onlyUnread, setOnlyUnread] = useState(false);
 
   // Shuffled stories - memoized so they stay consistent during the session
   const shuffledStories = useMemo(() => shuffleArray(STORIES), []);
@@ -39,67 +41,69 @@ export function VisorHistorias() {
     return shuffledStories.map((story, index) => ({
       ...story,
       requiredLevel: getRequiredLevelForStory(story.id, index),
+      category: getStoryCategory(story.id),
     }));
   }, [shuffledStories]);
 
-  // Dynamic LocalStorage keys using profile ID
-  const LS_READ_KEY = useMemo(() => `estoico_stories_read_${activeProfile?.id || "anon"}`, [activeProfile?.id]);
-  const LS_RATINGS_KEY = useMemo(() => `estoico_stories_ratings_${activeProfile?.id || "anon"}`, [activeProfile?.id]);
+  const filteredStories = useMemo(() => {
+    return storiesWithProgress.filter((s) => {
+      if (categoryFilter !== "todas" && s.category !== categoryFilter) return false;
+      if (onlyUnread && readIds.has(s.id)) return false;
+      return true;
+    });
+  }, [storiesWithProgress, categoryFilter, onlyUnread, readIds]);
+
+  // El contador de racha de Templanza es solo un ritmo de recompensa, no
+  // progreso real, así que se queda en localStorage por simplicidad.
   const LS_TEMPERANCE_COUNTER = useMemo(() => `estoico_stories_temperance_counter_${activeProfile?.id || "anon"}`, [activeProfile?.id]);
 
-  // Load from localStorage on mount or profile change
+  // Cargar progreso real (leídas + calificaciones) desde Supabase, para que
+  // sobreviva un cambio de dispositivo.
   useEffect(() => {
     if (!activeProfile) return;
+
+    supabase
+      .from("story_progress")
+      .select("story_id, rating")
+      .eq("user_id", activeProfile.id)
+      .then(({ data }: { data: { story_id: string; rating: number | null }[] | null }) => {
+        const read = new Set<string>();
+        const ratingsMap: Record<string, number> = {};
+        (data || []).forEach((row) => {
+          read.add(row.story_id);
+          if (row.rating) ratingsMap[row.story_id] = row.rating;
+        });
+        setReadIds(read);
+        setRatings(ratingsMap);
+      });
+
     try {
-      const savedRead = localStorage.getItem(LS_READ_KEY);
-      if (savedRead) setReadIds(new Set(JSON.parse(savedRead)));
-      else setReadIds(new Set());
-
-      const savedRatings = localStorage.getItem(LS_RATINGS_KEY);
-      if (savedRatings) setRatings(JSON.parse(savedRatings));
-      else setRatings({});
-
       const savedCounter = localStorage.getItem(LS_TEMPERANCE_COUNTER);
-      if (savedCounter) setTemperanceCounter(parseInt(savedCounter, 10));
-      else setTemperanceCounter(0);
+      setTemperanceCounter(savedCounter ? parseInt(savedCounter, 10) : 0);
     } catch (e) {
-      console.error("Error loading story progress", e);
+      console.error("Error loading temperance counter", e);
     }
-  }, [activeProfile, LS_READ_KEY, LS_RATINGS_KEY, LS_TEMPERANCE_COUNTER]);
-
-  // Save read IDs
-  const persistRead = useCallback((newSet: Set<string>) => {
-    setReadIds(newSet);
-    if (activeProfile) {
-      localStorage.setItem(LS_READ_KEY, JSON.stringify([...newSet]));
-    }
-  }, [activeProfile, LS_READ_KEY]);
-
-  // Save ratings
-  const persistRatings = useCallback((newRatings: Record<string, number>) => {
-    setRatings(newRatings);
-    if (activeProfile) {
-      localStorage.setItem(LS_RATINGS_KEY, JSON.stringify(newRatings));
-    }
-  }, [activeProfile, LS_RATINGS_KEY]);
+  }, [activeProfile, LS_TEMPERANCE_COUNTER]);
 
   // Mark as read + check temperance reward
   const markAsRead = useCallback(async (storyId: string) => {
-    if (readIds.has(storyId)) return;
+    if (readIds.has(storyId) || !activeProfile) return;
 
     const newSet = new Set(readIds);
     newSet.add(storyId);
-    persistRead(newSet);
+    setReadIds(newSet);
+    await supabase.from("story_progress").upsert(
+      { user_id: activeProfile.id, story_id: storyId },
+      { onConflict: "user_id,story_id" }
+    );
 
     // Increment temperance counter
     const newCounter = temperanceCounter + 1;
     setTemperanceCounter(newCounter);
-    if (activeProfile) {
-      localStorage.setItem(LS_TEMPERANCE_COUNTER, String(newCounter));
-    }
+    localStorage.setItem(LS_TEMPERANCE_COUNTER, String(newCounter));
 
     // Every 4 stories -> reward Templanza
-    if (newCounter % 4 === 0 && activeProfile && !awardingXP) {
+    if (newCounter % 4 === 0 && !awardingXP) {
       setAwardingXP(true);
       try {
         await addVirtueXP(activeProfile.id, "temperance", 20);
@@ -114,47 +118,54 @@ export function VisorHistorias() {
         setAwardingXP(false);
       }
     }
-  }, [readIds, temperanceCounter, activeProfile, awardingXP, persistRead, refreshProfile, LS_TEMPERANCE_COUNTER]);
+  }, [readIds, temperanceCounter, activeProfile, awardingXP, refreshProfile, LS_TEMPERANCE_COUNTER]);
 
   // Rate a story
-  const rateStory = useCallback((storyId: string, rating: number) => {
-    const newRatings = { ...ratings, [storyId]: rating };
-    persistRatings(newRatings);
+  const rateStory = useCallback(async (storyId: string, rating: number) => {
+    if (!activeProfile) return;
+    setRatings((prev) => ({ ...prev, [storyId]: rating }));
+    await supabase.from("story_progress").upsert(
+      { user_id: activeProfile.id, story_id: storyId, rating },
+      { onConflict: "user_id,story_id" }
+    );
 
     // Also mark as read when rating
     if (!readIds.has(storyId)) {
       markAsRead(storyId);
     }
-  }, [ratings, readIds, persistRatings, markAsRead]);
+  }, [readIds, activeProfile, markAsRead]);
 
   const handleNext = () => {
-    setCurrentIndex((prev) => (prev + 1) % storiesWithProgress.length);
+    setCurrentIndex((prev) => (prev + 1) % Math.max(filteredStories.length, 1));
     setHoverStar(0);
   };
 
   const handlePrev = () => {
-    setCurrentIndex((prev) => (prev - 1 + storiesWithProgress.length) % storiesWithProgress.length);
+    setCurrentIndex((prev) => (prev - 1 + Math.max(filteredStories.length, 1)) % Math.max(filteredStories.length, 1));
     setHoverStar(0);
   };
 
-  const resetAllStories = useCallback(() => {
+  useEffect(() => {
+    setCurrentIndex(0);
+  }, [categoryFilter, onlyUnread]);
+
+  const resetAllStories = useCallback(async () => {
     if (!activeProfile) return;
     setReadIds(new Set());
     setRatings({});
     setTemperanceCounter(0);
     setHoverStar(0);
-    localStorage.removeItem(LS_READ_KEY);
-    localStorage.removeItem(LS_RATINGS_KEY);
     localStorage.removeItem(LS_TEMPERANCE_COUNTER);
+    await supabase.from("story_progress").delete().eq("user_id", activeProfile.id);
     setCurrentIndex(0);
     setShowResetConfirm(false);
     toast.success("Biblioteca reiniciada", {
       description: "Todas las historias están como nuevas. ¡A leer de nuevo!",
       icon: "📖",
     });
-  }, [activeProfile, LS_READ_KEY, LS_RATINGS_KEY, LS_TEMPERANCE_COUNTER]);
+  }, [activeProfile, LS_TEMPERANCE_COUNTER]);
 
-  const story = storiesWithProgress[currentIndex];
+  const story = filteredStories[currentIndex] ?? storiesWithProgress[0];
   const isRead = readIds.has(story.id);
   const currentRating = ratings[story.id] || 0;
   const totalRead = readIds.size;
@@ -193,6 +204,43 @@ export function VisorHistorias() {
         Descubre cómo los antiguos (¡y tú mismo!) usaron sus superpoderes
         para vencer obstáculos.
       </p>
+
+      {/* Filtros por categoría + no leídas */}
+      <div className="mb-6 flex flex-wrap items-center justify-center gap-2">
+        <button
+          onClick={() => setCategoryFilter("todas")}
+          className={`rounded-full px-3.5 py-1.5 text-xs font-bold transition-colors ${
+            categoryFilter === "todas"
+              ? "bg-blue-600 text-white"
+              : "bg-zinc-100 text-zinc-600 hover:bg-zinc-200 dark:bg-zinc-800 dark:text-zinc-300"
+          }`}
+        >
+          Todas
+        </button>
+        {(Object.keys(STORY_CATEGORY_LABELS) as StoryCategory[]).map((cat) => (
+          <button
+            key={cat}
+            onClick={() => setCategoryFilter(cat)}
+            className={`rounded-full px-3.5 py-1.5 text-xs font-bold transition-colors ${
+              categoryFilter === cat
+                ? "bg-blue-600 text-white"
+                : "bg-zinc-100 text-zinc-600 hover:bg-zinc-200 dark:bg-zinc-800 dark:text-zinc-300"
+            }`}
+          >
+            {STORY_CATEGORY_LABELS[cat]}
+          </button>
+        ))}
+        <button
+          onClick={() => setOnlyUnread((v) => !v)}
+          className={`rounded-full px-3.5 py-1.5 text-xs font-bold transition-colors ${
+            onlyUnread
+              ? "bg-emerald-600 text-white"
+              : "bg-zinc-100 text-zinc-600 hover:bg-zinc-200 dark:bg-zinc-800 dark:text-zinc-300"
+          }`}
+        >
+          {onlyUnread ? "✓ Solo no leídas" : "Solo no leídas"}
+        </button>
+      </div>
 
       {/* Progress bar + Reset button */}
       <div className="mb-8 mx-auto max-w-lg">
@@ -295,6 +343,13 @@ export function VisorHistorias() {
         )}
       </AnimatePresence>
 
+      {filteredStories.length === 0 ? (
+        <div className="mx-auto max-w-lg rounded-2xl border border-dashed border-zinc-300 bg-zinc-50 p-10 text-center dark:border-zinc-700 dark:bg-zinc-900">
+          <div className="mb-3 text-4xl">🎉</div>
+          <p className="font-bold text-zinc-700 dark:text-zinc-200">¡Ya leíste todas las historias de este filtro!</p>
+          <p className="mt-2 text-sm text-zinc-500 dark:text-zinc-400">Prueba otra categoría o quita el filtro de no leídas.</p>
+        </div>
+      ) : (
       <div className="relative mx-auto max-w-3xl overflow-hidden rounded-2xl shadow-2xl">
         {/* Fondo decorativo superior */}
         <div className={`h-40 w-full bg-gradient-to-r ${bgGradient} p-6 pb-16 transition-colors duration-500 relative`}>
@@ -424,13 +479,14 @@ export function VisorHistorias() {
             <ChevronLeft className="h-4 w-4" /> Anterior
           </Button>
           <span className="text-sm font-medium text-zinc-500 dark:text-zinc-400">
-            Historia {currentIndex + 1} de {storiesWithProgress.length}
+            Historia {currentIndex + 1} de {filteredStories.length}
           </span>
           <Button variant="outline" size="sm" onClick={handleNext} className="gap-2">
             Siguiente <ChevronRight className="h-4 w-4" />
           </Button>
         </div>
       </div>
+      )}
     </section>
   );
 }

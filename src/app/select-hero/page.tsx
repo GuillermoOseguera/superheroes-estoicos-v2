@@ -44,18 +44,19 @@ const pendingInitialization: Record<string, Promise<any>> = {};
 
 export default function HeroSelectPage() {
   const router = useRouter();
-  const { setActiveProfile, activeAccount, logout } = useProfile();
+  const { setActiveProfile, activeAccount, sessionLoading, logout } = useProfile();
   const [loading, setLoading] = useState(false);
   const [quoteIndex, setQuoteIndex] = useState(0);
   const [profiles, setProfiles] = useState<Profile[]>([]);
   const [fetching, setFetching] = useState(true);
 
-  // Redirigir si no hay sesión
+  // Redirigir si no hay sesión (esperando primero a que termine de validarse
+  // la sesión guardada, para no expulsar al usuario en recargas de página).
   useEffect(() => {
-    if (!activeAccount) {
-      router.replace("/login");
+    if (!sessionLoading && !activeAccount) {
+      router.replace("/");
     }
-  }, [activeAccount, router]);
+  }, [activeAccount, sessionLoading, router]);
 
   // Cargar Perfiles de esta cuenta
   useEffect(() => {

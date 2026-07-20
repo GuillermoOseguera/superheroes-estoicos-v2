@@ -4,8 +4,14 @@ import { useRouter } from "next/navigation";
 import { motion } from "framer-motion";
 import Link from "next/link";
 import { useProfile } from "@/lib/profile-store";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { getRequiredLevelForGame, isUnlocked } from "@/lib/progression";
+import { supabase, xpForNextLevel, levelFromXP, xpWithinLevel } from "@/lib/supabase";
+
+interface GameStat {
+  bestScore: number;
+  lastPlayed: string;
+}
 
 const XP_AWARD = 25;
 
@@ -75,15 +81,76 @@ const GAMES = [
     virtue: "Justicia",
     requiredLevel: getRequiredLevelForGame("constructor-escudo"),
   },
+  {
+    id: "vuelo-buho",
+    href: "/juegos/vuelo-buho",
+    title: "El Vuelo del Búho",
+    emoji: "🦉",
+    description: "Aletea entre las columnas del templo, recoge sabiduría y esquiva las distracciones.",
+    color: "#eab308",
+    xp: "Hasta 70 XP por vuelo",
+    virtue: "Sabiduría",
+    requiredLevel: getRequiredLevelForGame("vuelo-buho"),
+  },
+  {
+    id: "falange-serena",
+    href: "/juegos/falange",
+    title: "La Falange Serena",
+    emoji: "🛡️",
+    description: "Defiende tu formación de las sombras invasoras y derrota a un jefe cada 5 oleadas.",
+    color: "#818cf8",
+    xp: "XP por cada oleada superada",
+    virtue: "Coraje",
+    requiredLevel: getRequiredLevelForGame("falange-serena"),
+  },
 ];
 
+// Ids del hub (con guion) → ids reales guardados en game_results (con guion bajo)
+const GAME_ID_MAP: Record<string, string> = {
+  "dos-cajas": "dos_cajas",
+  "desafio-virtudes": "desafio_virtudes",
+  "memoria-estoica": "memoria_estoica",
+  "semaforo-emocional": "semaforo_emocional",
+  "defensor-mente": "defensor_mente",
+  "constructor-escudo": "constructor_escudo",
+  "vuelo-buho": "vuelo_buho",
+  "falange-serena": "falange_serena",
+};
+
+function totalXpToReachLevel(level: number): number {
+  let total = 0;
+  for (let i = 1; i < level; i++) total += xpForNextLevel(i);
+  return total;
+}
+
 export default function JuegosPage() {
-  const { activeProfile } = useProfile();
+  const { activeProfile, sessionLoading } = useProfile();
   const router = useRouter();
   const currentLevel = activeProfile?.level ?? 1;
+  const [stats, setStats] = useState<Record<string, GameStat>>({});
 
   useEffect(() => {
-    if (!activeProfile) router.replace("/select-hero");
+    if (!activeProfile) {
+      if (!sessionLoading) router.replace("/select-hero");
+      return;
+    }
+
+    supabase
+      .from("game_results")
+      .select("game_id, score, completed_at")
+      .eq("user_id", activeProfile.id)
+      .then(({ data }: { data: { game_id: string; score: number; completed_at: string }[] | null }) => {
+        const byGame: Record<string, GameStat> = {};
+        (data || []).forEach((r) => {
+          if (!r.game_id || r.game_id.startsWith("mission_")) return;
+          const current = byGame[r.game_id];
+          byGame[r.game_id] = {
+            bestScore: Math.max(current?.bestScore ?? 0, r.score ?? 0),
+            lastPlayed: current?.lastPlayed && current.lastPlayed > r.completed_at ? current.lastPlayed : r.completed_at,
+          };
+        });
+        setStats(byGame);
+      });
   }, [activeProfile, router]);
 
   return (
@@ -127,12 +194,12 @@ export default function JuegosPage() {
                 className="game-card"
                 style={{ opacity: 0.5, cursor: "not-allowed", filter: "grayscale(0.4)" }}
               >
-                <GameCardContent game={game} currentLevel={currentLevel} />
+                <GameCardContent game={game} currentLevel={currentLevel} stat={stats[GAME_ID_MAP[game.id]]} totalXp={activeProfile?.total_xp ?? 0} />
               </div>
             ) : (
               <Link href={game.href} style={{ textDecoration: "none" }}>
                 <div className="game-card">
-                  <GameCardContent game={game} currentLevel={currentLevel} />
+                  <GameCardContent game={game} currentLevel={currentLevel} stat={stats[GAME_ID_MAP[game.id]]} totalXp={activeProfile?.total_xp ?? 0} />
                 </div>
               </Link>
             )}
@@ -143,8 +210,19 @@ export default function JuegosPage() {
   );
 }
 
-function GameCardContent({ game, currentLevel }: { game: typeof GAMES[0]; currentLevel: number }) {
+function GameCardContent({
+  game,
+  currentLevel,
+  stat,
+  totalXp,
+}: {
+  game: typeof GAMES[0];
+  currentLevel: number;
+  stat?: GameStat;
+  totalXp: number;
+}) {
   const locked = !isUnlocked(game.requiredLevel ?? 1, currentLevel);
+  const xpMissing = locked ? Math.max(0, totalXpToReachLevel(game.requiredLevel ?? 1) - totalXp) : 0;
 
   return (
     <>
@@ -203,6 +281,21 @@ function GameCardContent({ game, currentLevel }: { game: typeof GAMES[0]; curren
           {locked ? `🔒 Nivel ${game.requiredLevel}` : "✅ Desbloqueado"}
         </div>
       </div>
+
+      {locked ? (
+        <div style={{ marginTop: 10, fontSize: 11, color: "#94a3b8", fontWeight: 600 }}>
+          Te faltan {xpMissing} XP para desbloquearlo
+        </div>
+      ) : stat ? (
+        <div style={{ marginTop: 10, fontSize: 11, color: "#64748b", display: "flex", gap: 12, flexWrap: "wrap" }}>
+          <span>🏅 Récord: {stat.bestScore}</span>
+          <span>🕘 Última vez: {new Date(stat.lastPlayed).toLocaleDateString("es-MX", { day: "numeric", month: "short" })}</span>
+        </div>
+      ) : (
+        <div style={{ marginTop: 10, fontSize: 11, color: "#94a3b8", fontStyle: "italic" }}>
+          Aún no lo has jugado
+        </div>
+      )}
     </>
   );
 }

@@ -3,7 +3,7 @@
 import Link from "next/link";
 import Image from "next/image";
 import { usePathname } from "next/navigation";
-import { Home, Swords, BookOpen, Target, Trophy, BarChart2, LogOut, Users } from "lucide-react";
+import { Home, Swords, BookOpen, Target, Trophy, BarChart2, LogOut, Users, Wrench, NotebookPen, Map } from "lucide-react";
 import { useProfile } from "@/lib/profile-store";
 
 const NAV_ITEMS = [
@@ -11,6 +11,9 @@ const NAV_ITEMS = [
   { href: "/juegos", label: "Sala de Entrenamiento", icon: Swords },
   { href: "/historias", label: "Biblioteca", icon: BookOpen },
   { href: "/misiones", label: "Misiones", icon: Target },
+  { href: "/taller", label: "Taller del Héroe", icon: Wrench },
+  { href: "/diario", label: "Diario del Héroe", icon: NotebookPen },
+  { href: "/viaje", label: "Mapa del Viaje", icon: Map },
   { href: "/logros", label: "Sala de Trofeos", icon: Trophy },
   { href: "/estadisticas", label: "Panel Familiar", icon: BarChart2 },
 ];

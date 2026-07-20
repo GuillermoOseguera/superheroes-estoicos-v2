@@ -104,14 +104,22 @@ export default function EstadisticasPage() {
     setLoading(true);
     try {
       const { data: profilesData } = await supabase.from("profiles").select("*").eq("account_id", activeAccount.id).order("name");
-      const { data: resultsData } = await supabase.from("game_results").select("*");
-      const { data: achievementsData } = await supabase.from("unlocked_achievements").select("*");
-      const { data: virtuesData } = await supabase.from("user_virtues").select("*");
+      const profileIds = (profilesData || []).map((p: Profile) => p.id);
+
+      if (profileIds.length === 0) {
+        setStats([]);
+        return;
+      }
+
+      const { data: resultsData } = await supabase.from("game_results").select("*").in("user_id", profileIds);
+      const { data: achievementsData } = await supabase.from("unlocked_achievements").select("*").in("user_id", profileIds);
+      const { data: virtuesData } = await supabase.from("user_virtues").select("*").in("user_id", profileIds);
       const weekAgo = new Date();
       weekAgo.setDate(weekAgo.getDate() - 7);
       const { data: emotionalLogsData } = await supabase
         .from("emotional_logs")
         .select("*")
+        .in("user_id", profileIds)
         .gte("created_at", weekAgo.toISOString());
 
       if (profilesData && resultsData) {
@@ -319,7 +327,7 @@ export default function EstadisticasPage() {
 
                         {/* 6 Mini cuadros */}
                         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8, marginBottom: 16 }}>
-                          <div className="stat-mini-box"><div className="stat-mini-val text-blue-600">{stat.tiempoEstimadoMinutos}</div><div className="stat-mini-lbl">Minutos</div></div>
+                          <div className="stat-mini-box"><div className="stat-mini-val text-blue-600">{stat.totalSesiones}</div><div className="stat-mini-lbl">Sesiones</div></div>
                           <div className="stat-mini-box"><div className="stat-mini-val text-amber-500">{stat.unlockedAchievementsCount}</div><div className="stat-mini-lbl">Logros</div></div>
                           <div className="stat-mini-box"><div className="stat-mini-val text-emerald-600">{stat.aciertos}</div><div className="stat-mini-lbl">Aciertos</div></div>
                           <div className="stat-mini-box"><div className="stat-mini-val text-rose-600">{stat.errores}</div><div className="stat-mini-lbl">Errores</div></div>

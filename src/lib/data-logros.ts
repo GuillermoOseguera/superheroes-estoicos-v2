@@ -31,6 +31,20 @@ export const ALL_ACHIEVEMENTS: Achievement[] = [
   { id: "ojo_aguila", icon: "👁️", label: "Ojo de Águila", desc: "Completa DosCajas sin errores", color: "#0891b2" },
   { id: "zen_master", icon: "🧘", label: "Maestro Zen", desc: "Acumula 20 actas de DosCajas", color: "#0891b2" },
 
+  // El Vuelo del Búho (escala 1/2/3/max, igual que las virtudes)
+  { id: "buho_1", icon: "🪶", label: "Primer Vuelo", desc: "Consigue 10 puntos en El Vuelo del Búho", color: "#fde047" },
+  { id: "buho_2", icon: "🦉", label: "Alas de Sabiduría", desc: "Consigue 25 puntos en El Vuelo del Búho", color: "#eab308" },
+  { id: "buho_3", icon: "🌙", label: "Vuelo Imperturbable", desc: "Consigue 50 puntos en El Vuelo del Búho", color: "#ca8a04" },
+  { id: "buho_max", icon: "🏛️", label: "Guardián del Templo", desc: "Consigue 100 puntos en El Vuelo del Búho", color: "#a16207" },
+
+  // La Falange Serena (escala 1/2/3/max + misceláneos de nave y arma)
+  { id: "falange_1", icon: "🛡️", label: "Primera Formación", desc: "Sobrevive hasta la oleada 3 en La Falange Serena", color: "#a5b4fc" },
+  { id: "falange_2", icon: "👑", label: "Primer Jefe Caído", desc: "Derrota a tu primer jefe en La Falange Serena", color: "#818cf8" },
+  { id: "falange_3", icon: "⚔️", label: "Falange Invicta", desc: "Llega a la oleada 10 en La Falange Serena", color: "#6366f1" },
+  { id: "falange_max", icon: "🏅", label: "Comandante Sereno", desc: "Llega a la oleada 15 en La Falange Serena", color: "#4338ca" },
+  { id: "falange_naves", icon: "🚀", label: "Tres Escudos, Un Espíritu", desc: "Juega una partida con cada una de las 3 naves", color: "#38bdf8" },
+  { id: "falange_arma_max", icon: "⚡", label: "Arsenal Estoico", desc: "Alcanza el nivel de arma máximo en una partida", color: "#f59e0b" },
+
   // XP Global y Niveles
   { id: "mente_acero", icon: "🪖", label: "Mente de Acero", desc: "Gana 500 XP totales", color: "#475569" },
   { id: "corazon_leon", icon: "🦁", label: "Corazón de León", desc: "Alcanza Nivel 5", color: "#facc15" },

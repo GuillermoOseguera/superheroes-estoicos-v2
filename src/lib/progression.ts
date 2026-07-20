@@ -15,9 +15,11 @@ export const GAME_UNLOCK_LEVELS: Record<string, number> = {
   "dos-cajas": 1,
   "desafio-virtudes": 1,
   "semaforo-emocional": 2,
+  "vuelo-buho": 3,
   "constructor-escudo": 3,
   "memoria-estoica": 4,
   "defensor-mente": 5,
+  "falange-serena": 6,
 };
 
 export const STORY_UNLOCK_LEVELS: Record<string, number> = {

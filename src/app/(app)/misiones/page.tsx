@@ -18,7 +18,7 @@ interface LatestGameRow {
 }
 
 export default function MisionesPage() {
-  const { activeProfile, refreshProfile } = useProfile();
+  const { activeProfile, refreshProfile, sessionLoading } = useProfile();
   const router = useRouter();
   const [completadas, setCompletadas] = useState<Record<string, boolean>>({});
   const [notes, setNotes] = useState<Record<string, string>>({});
@@ -37,7 +37,7 @@ export default function MisionesPage() {
   }, [activeProfile, latestGameId, virtues]);
 
   useEffect(() => {
-    if (!activeProfile) { router.replace("/select-hero"); return; }
+    if (!activeProfile) { if (!sessionLoading) router.replace("/select-hero"); return; }
     const today = new Date().toISOString().split("T")[0];
     Promise.all([
       supabase
@@ -80,16 +80,31 @@ export default function MisionesPage() {
     }
   }, [expanded, misiones]);
 
+  const DAILY_BONUS_ID = "bonus_dia_completo";
+  const DAILY_BONUS_XP = 30;
+
   const handleCompletar = async (misionId: string, xp: number) => {
     if (completadas[misionId] || !activeProfile || submitting) return;
     setSubmitting(misionId);
     try {
       await completeMission(activeProfile.id, misionId, xp, notes[misionId]);
-      setCompletadas((prev) => ({ ...prev, [misionId]: true }));
+      const nextCompletadas = { ...completadas, [misionId]: true };
+      setCompletadas(nextCompletadas);
       toast.success(`¡Misión completada! +${xp} XP`, {
         description: "Has dado un paso más para convertirte en un sabio.",
         icon: "🌟",
       });
+
+      const allDone = misiones.every((m) => nextCompletadas[m.id]);
+      if (allDone && !nextCompletadas[DAILY_BONUS_ID]) {
+        await completeMission(activeProfile.id, DAILY_BONUS_ID, DAILY_BONUS_XP);
+        setCompletadas((prev) => ({ ...prev, [DAILY_BONUS_ID]: true }));
+        toast.success(`¡Día completo! Bono de +${DAILY_BONUS_XP} XP`, {
+          description: "Terminaste tus 3 misiones de hoy. ¡Eso es disciplina estoica!",
+          icon: "🏅",
+        });
+      }
+
       refreshProfile();
     } catch {
       toast.error("Error al guardar la misión.");
@@ -98,7 +113,9 @@ export default function MisionesPage() {
     }
   };
 
-  const totalXp = misiones.filter((m) => completadas[m.id]).reduce((sum, m) => sum + m.xp, 0);
+  const totalXp =
+    misiones.filter((m) => completadas[m.id]).reduce((sum, m) => sum + m.xp, 0) +
+    (completadas[DAILY_BONUS_ID] ? DAILY_BONUS_XP : 0);
 
   return (
     <div>
@@ -219,7 +236,7 @@ export default function MisionesPage() {
                       onChange={(e) => setNotes((prev) => ({ ...prev, [mision.id]: e.target.value }))}
                       disabled={completadas[mision.id]}
                       rows={4}
-                      placeholder="1. Hoy hice bien...\n2. Podría mejorar...\n3. Estoy agradecido por..."
+                      placeholder={"1. Hoy hice bien...\n2. Podría mejorar...\n3. Estoy agradecido por..."}
                       style={{
                         width: "100%",
                         borderRadius: 10,

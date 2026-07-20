@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { motion } from "framer-motion";
 import Link from "next/link";
@@ -21,9 +21,20 @@ import {
   type LevelMilestone,
 } from "@/lib/level-milestones";
 import { LevelMilestoneModal } from "@/components/game/LevelMilestoneModal";
+import { NovedadesModal } from "@/components/game/NovedadesModal";
+import {
+  debeMostrarNovedades,
+  descartarNovedades,
+  registrarVistaNovedades,
+} from "@/lib/novedades";
+import { getDynamicMissions } from "@/lib/dynamic-missions";
 
 interface MissionRow {
-  id: string;
+  mission_id: string;
+}
+
+interface LatestGameRow {
+  game_id: string;
 }
 
 interface UnlockedAchievementRow {
@@ -142,17 +153,28 @@ function VirtueRadar({ virtues }: { virtues: UserVirtues | null }) {
 
 // ── Page ────────────────────────────────────────────────────────
 export default function HomePage() {
-  const { activeProfile, refreshProfile } = useProfile();
+  const { activeProfile, refreshProfile, sessionLoading } = useProfile();
   const router = useRouter();
   const [virtues, setVirtues] = useState<UserVirtues | null>(null);
-  const [completedToday, setCompletedToday] = useState(0);
+  const [completedTodayIds, setCompletedTodayIds] = useState<Set<string>>(new Set());
+  const [latestGameId, setLatestGameId] = useState<string | null>(null);
   const [recentLogros, setRecentLogros] = useState<Achievement[]>([]);
   const [hasNoLogros, setHasNoLogros] = useState(false);
   const [milestoneModal, setMilestoneModal] = useState<LevelMilestone | null>(null);
+  const [showNovedades, setShowNovedades] = useState(false);
+
+  const misionesHoy = useMemo(() => {
+    if (!activeProfile) return [];
+    return getDynamicMissions({
+      virtues,
+      latestGameId,
+      currentLevel: levelFromXP(activeProfile.total_xp),
+    });
+  }, [activeProfile, virtues, latestGameId]);
 
   useEffect(() => {
     if (!activeProfile) {
-      router.replace("/select-hero");
+      if (!sessionLoading) router.replace("/select-hero");
       return;
     }
     refreshProfile();
@@ -167,16 +189,29 @@ export default function HomePage() {
         if (response.data) setVirtues(response.data);
       });
 
-    // Count missions done today
+    // Missiones completadas hoy (para tildar la lista real de misiones)
     const today = new Date().toISOString().split("T")[0];
     supabase
       .from("daily_missions")
-      .select("id")
+      .select("mission_id")
       .eq("user_id", activeProfile.id)
       .eq("mission_date", today)
       .eq("is_completed", true)
       .then((response: { data: MissionRow[] | null }) => {
-        setCompletedToday(response.data?.length ?? 0);
+        setCompletedTodayIds(new Set((response.data || []).map((m) => m.mission_id)));
+      });
+
+    // Último minijuego jugado (alimenta la misión dinámica del día)
+    supabase
+      .from("game_results")
+      .select("game_id")
+      .eq("user_id", activeProfile.id)
+      .not("game_id", "like", "mission_%")
+      .order("completed_at", { ascending: false })
+      .limit(1)
+      .maybeSingle()
+      .then((response: { data: LatestGameRow | null }) => {
+        setLatestGameId(response.data?.game_id ?? null);
       });
 
     // Fetch recent achievements
@@ -217,6 +252,26 @@ export default function HomePage() {
     return () => window.clearTimeout(timeoutId);
   }, [activeProfile]);
 
+  // Aviso de novedades: aparece solo (máx. 3 veces por héroe) al entrar al
+  // Cuartel General, siempre que el modal de hito de nivel no esté por salir.
+  useEffect(() => {
+    if (!activeProfile) return;
+
+    const level = levelFromXP(activeProfile.total_xp);
+    const currentMilestone = getCurrentMilestone(activeProfile.id, level);
+    const milestonePendiente = localStorage.getItem(getMilestoneStorageKey(activeProfile.id)) !== currentMilestone.id;
+    if (milestonePendiente) return; // Prioridad al festejo de nivel; novedades saldrán en la próxima visita
+
+    if (!debeMostrarNovedades(activeProfile.id)) return;
+
+    const timeoutId = window.setTimeout(() => {
+      setShowNovedades(true);
+      registrarVistaNovedades(activeProfile.id);
+    }, 900);
+
+    return () => window.clearTimeout(timeoutId);
+  }, [activeProfile]);
+
   if (!activeProfile) return null;
 
   const level = levelFromXP(activeProfile.total_xp);
@@ -253,6 +308,15 @@ export default function HomePage() {
         onClose={handleCloseMilestoneModal}
       />
 
+      <NovedadesModal
+        open={showNovedades}
+        onClose={() => setShowNovedades(false)}
+        onDismissForever={() => {
+          descartarNovedades(activeProfile.id);
+          setShowNovedades(false);
+        }}
+      />
+
       {/* Header */}
       <div className="main-header" style={{ marginLeft: -24, marginRight: -24, marginTop: -24, marginBottom: 24, padding: "16px 24px", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
         <div>
@@ -262,8 +326,27 @@ export default function HomePage() {
           <div style={{ fontSize: 13, color: "#94a3b8", marginTop: 2 }}>Cuartel General</div>
         </div>
         
-        <Link 
-          href="/select-hero" 
+        <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+        <button
+          onClick={() => setShowNovedades(true)}
+          style={{
+            display: "flex",
+            alignItems: "center",
+            gap: 6,
+            background: "rgba(251,191,36,0.15)",
+            padding: "8px 16px",
+            borderRadius: 20,
+            color: "#fbbf24",
+            fontSize: 13,
+            fontWeight: 700,
+            border: "1px solid rgba(251,191,36,0.35)",
+            cursor: "pointer",
+          }}
+        >
+          ✨ Novedades
+        </button>
+        <Link
+          href="/select-hero"
           style={{
             display: "flex",
             alignItems: "center",
@@ -290,6 +373,7 @@ export default function HomePage() {
           <span style={{ fontSize: 16 }}>🦸</span>
           <span className="hidden sm:inline">Cambiar Héroe</span>
         </Link>
+        </div>
       </div>
 
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 20 }}>
@@ -509,35 +593,36 @@ export default function HomePage() {
               MISIÓN DEL DÍA
             </h3>
             <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-              {[
-                { label: "El Diario del Héroe (5 min)", id: "m1" },
-                { label: "¿Y qué si?", id: "m2" },
-                { label: "Misión Secreta de Bondad", id: "m3" },
-              ].map((m, i) => (
-                <div
-                  key={i}
-                  style={{ display: "flex", alignItems: "start", gap: 10, fontSize: 13 }}
-                >
-                  <div
-                    style={{
-                      width: 18,
-                      height: 18,
-                      border: "2px solid #94a3b8",
-                      borderRadius: 3,
-                      flexShrink: 0,
-                      marginTop: 1,
-                      display: "flex",
-                      alignItems: "center",
-                      justifyContent: "center",
-                    }}
+              {misionesHoy.map((m) => {
+                const done = completedTodayIds.has(m.id);
+                return (
+                  <Link
+                    key={m.id}
+                    href="/misiones"
+                    style={{ display: "flex", alignItems: "start", gap: 10, fontSize: 13, textDecoration: "none" }}
                   >
-                    {i < completedToday && (
-                      <span style={{ color: "#22c55e", fontSize: 11 }}>✓</span>
-                    )}
-                  </div>
-                  <span style={{ color: "#334155", lineHeight: 1.4, fontWeight: 500 }}>{m.label}</span>
-                </div>
-              ))}
+                    <div
+                      style={{
+                        width: 18,
+                        height: 18,
+                        border: `2px solid ${done ? "#22c55e" : "#94a3b8"}`,
+                        borderRadius: 3,
+                        flexShrink: 0,
+                        marginTop: 1,
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        background: done ? "#dcfce7" : "transparent",
+                      }}
+                    >
+                      {done && <span style={{ color: "#22c55e", fontSize: 11 }}>✓</span>}
+                    </div>
+                    <span style={{ color: done ? "#94a3b8" : "#334155", lineHeight: 1.4, fontWeight: 500, textDecoration: done ? "line-through" : "none" }}>
+                      {m.emoji} {m.titulo} · {m.xp} XP
+                    </span>
+                  </Link>
+                );
+              })}
             </div>
           </motion.div>
 

@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import { useRouter } from "next/navigation";
 import { useProfile } from "@/lib/profile-store";
-import { supabase, levelFromXP } from "@/lib/supabase";
+import { supabase, levelFromXP, type UserVirtues } from "@/lib/supabase";
 
 import { ALL_ACHIEVEMENTS } from "@/lib/data-logros";
 import {
@@ -22,15 +22,20 @@ interface AchievementRow {
 }
 
 export default function LogrosPage() {
-  const { activeProfile } = useProfile();
+  const { activeProfile, sessionLoading } = useProfile();
   const router = useRouter();
   const [unlockedIds, setUnlockedIds] = useState<Set<string>>(new Set());
   const [previewMilestone, setPreviewMilestone] = useState<LevelMilestone | null>(null);
   const [previewRelic, setPreviewRelic] = useState<RelicAsset | null>(null);
+  const [virtues, setVirtues] = useState<UserVirtues | null>(null);
+  const [gameCount, setGameCount] = useState(0);
+  const [virtudesCount, setVirtudesCount] = useState(0);
+  const [buhoBest, setBuhoBest] = useState(0);
+  const [falangeBestWave, setFalangeBestWave] = useState(0);
   const unlockedRelics = activeProfile ? getUnlockedRelicIds(activeProfile.id) : new Set<string>();
 
   useEffect(() => {
-    if (!activeProfile) { router.replace("/select-hero"); return; }
+    if (!activeProfile) { if (!sessionLoading) router.replace("/select-hero"); return; }
     supabase
       .from("unlocked_achievements")
       .select("achievement_id")
@@ -38,7 +43,93 @@ export default function LogrosPage() {
       .then((response: { data: AchievementRow[] | null }) => {
         if (response.data) setUnlockedIds(new Set(response.data.map((row) => row.achievement_id)));
       });
+
+    supabase
+      .from("user_virtues")
+      .select("*")
+      .eq("user_id", activeProfile.id)
+      .single()
+      .then((response: { data: UserVirtues | null }) => {
+        if (response.data) setVirtues(response.data);
+      });
+
+    supabase
+      .from("game_results")
+      .select("*", { count: "exact", head: true })
+      .eq("user_id", activeProfile.id)
+      .not("game_id", "like", "mission_%")
+      .then((response: { count: number | null }) => setGameCount(response.count ?? 0));
+
+    supabase
+      .from("game_results")
+      .select("*", { count: "exact", head: true })
+      .eq("user_id", activeProfile.id)
+      .eq("game_id", "desafio_virtudes")
+      .gt("xp_earned", 0)
+      .then((response: { count: number | null }) => setVirtudesCount(response.count ?? 0));
+
+    supabase
+      .from("game_results")
+      .select("score")
+      .eq("user_id", activeProfile.id)
+      .eq("game_id", "vuelo_buho")
+      .order("score", { ascending: false })
+      .limit(1)
+      .maybeSingle()
+      .then((response: { data: { score: number } | null }) => setBuhoBest(response.data?.score ?? 0));
+
+    supabase
+      .from("game_results")
+      .select("score")
+      .eq("user_id", activeProfile.id)
+      .eq("game_id", "falange_serena")
+      .order("score", { ascending: false })
+      .limit(1)
+      .maybeSingle()
+      .then((response: { data: { score: number } | null }) => setFalangeBestWave(response.data?.score ?? 0));
   }, [activeProfile, router]);
+
+  const progressForAchievement = (achievementId: string): { current: number; target: number } | null => {
+    if (!activeProfile) return null;
+    const level = levelFromXP(activeProfile.total_xp);
+    const streak = activeProfile.current_streak;
+
+    const table: Record<string, { current: number; target: number }> = {
+      diez_juegos: { current: gameCount, target: 10 },
+      cincuenta_juegos: { current: gameCount, target: 50 },
+      cien_juegos: { current: gameCount, target: 100 },
+      desafio_virtudes_10: { current: virtudesCount, target: 10 },
+      racha_3: { current: streak, target: 3 },
+      racha_7: { current: streak, target: 7 },
+      racha_14: { current: streak, target: 14 },
+      racha_30: { current: streak, target: 30 },
+      corazon_leon: { current: level, target: 5 },
+      fuerza_toro: { current: level, target: 10 },
+      voluntad_roca: { current: level, target: 15 },
+      sangre_olympos: { current: level, target: 20 },
+      mente_acero: { current: activeProfile.total_xp, target: 500 },
+      sab_2: { current: virtues?.wisdom_xp ?? 0, target: 500 },
+      sab_3: { current: virtues?.wisdom_xp ?? 0, target: 1000 },
+      fort_2: { current: virtues?.courage_xp ?? 0, target: 500 },
+      fort_3: { current: virtues?.courage_xp ?? 0, target: 1000 },
+      just_2: { current: virtues?.justice_xp ?? 0, target: 500 },
+      just_3: { current: virtues?.justice_xp ?? 0, target: 1000 },
+      temp_2: { current: virtues?.temperance_xp ?? 0, target: 500 },
+      temp_3: { current: virtues?.temperance_xp ?? 0, target: 1000 },
+      buho_1: { current: buhoBest, target: 10 },
+      buho_2: { current: buhoBest, target: 25 },
+      buho_3: { current: buhoBest, target: 50 },
+      buho_max: { current: buhoBest, target: 100 },
+      falange_1: { current: falangeBestWave, target: 3 },
+      falange_2: { current: falangeBestWave, target: 5 },
+      falange_3: { current: falangeBestWave, target: 10 },
+      falange_max: { current: falangeBestWave, target: 15 },
+    };
+
+    const entry = table[achievementId];
+    if (!entry) return null;
+    return { current: Math.min(entry.current, entry.target), target: entry.target };
+  };
 
   const unlocked = ALL_ACHIEVEMENTS.filter((a) => unlockedIds.has(a.id));
   const locked = ALL_ACHIEVEMENTS.filter((a) => !unlockedIds.has(a.id));
@@ -345,6 +436,25 @@ export default function LogrosPage() {
               <div style={{ fontSize: 11, color: "#94a3b8", lineHeight: 1.4, fontStyle: isUnlocked ? "normal" : "italic" }}>
                 {isUnlocked ? achievement.desc : "??? Descúbrelo jugando"}
               </div>
+              {!isUnlocked && progressForAchievement(achievement.id) && (
+                <div style={{ marginTop: 8 }}>
+                  <div style={{ height: 6, background: "#e2e8f0", borderRadius: 999, overflow: "hidden" }}>
+                    <div
+                      style={{
+                        height: "100%",
+                        borderRadius: 999,
+                        background: "#94a3b8",
+                        width: `${Math.round(
+                          (progressForAchievement(achievement.id)!.current / progressForAchievement(achievement.id)!.target) * 100
+                        )}%`,
+                      }}
+                    />
+                  </div>
+                  <div style={{ fontSize: 10, color: "#94a3b8", marginTop: 4, fontWeight: 700 }}>
+                    {progressForAchievement(achievement.id)!.current}/{progressForAchievement(achievement.id)!.target}
+                  </div>
+                </div>
+              )}
               {isUnlocked && (
                 <div style={{
                   marginTop: 8,
