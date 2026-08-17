@@ -20,7 +20,8 @@ export const STORY_CATEGORY_LABELS: Record<StoryCategory, string> = {
 const CLASICA_IDS = new Set([
   "epicteto", "marco_aurelio", "bambu", "granjero_roca", "seneca_ira",
   "diogenes_linterna", "flecha_y_arbol", "zenon_naufragio", "cleantes_agua",
-  "socrates_tres_filtros", "caton_descalzo",
+  "socrates_tres_filtros", "caton_descalzo", "zenon_tinta_purpura",
+  "crisipo_y_el_cilindro", "agripino_el_toro", "posidonio_y_el_dolor",
 ]);
 
 const PROFUNDA_IDS = new Set([
@@ -28,6 +29,7 @@ const PROFUNDA_IDS = new Set([
   "caballo_salvaje", "vasija_rota", "pajaro_jaula", "mendigo_copa", "escultor_criticas",
   "guerrero_impenetrable", "laberinto_respuestas", "arbol_frutos", "espejo_roto",
   "reloj_arena_inverso", "eco_montana", "burro_pozo", "dos_semillas",
+  "perro_carreta", "escultor_bloque_marmol", "dos_lobos_mente", "farol_en_la_niebla",
 ]);
 
 export function getStoryCategory(storyId: string): StoryCategory {
@@ -766,5 +768,187 @@ export const STORIES: Story[] = [
       "Crecer siempre implica un riesgo. Pero no crecer implica uno mayor: desaparecer sin haber intentado nada. La comodidad total no existe; solo puedes elegir entre el riesgo de crecer o el riesgo de quedarte."
     ],
     lesson: "Esperar 'el momento perfecto y sin riesgos' es la trampa más vieja del miedo. El único momento seguro para crecer es ahora."
+  },
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // NUEVAS HISTORIAS DE ELÍAS (4)
+  // ═══════════════════════════════════════════════════════════════════════════
+  {
+    id: "elias_perder_torneo",
+    title: "Elías y el Torneo de Ajedrez",
+    colorScheme: "amber",
+    paragraphs: [
+      "Era la ronda final del torneo escolar de ajedrez. Elías tenía ventaja con su reina y su torre, pero en un segundo de distracción, hizo un mal movimiento y cayó en jaque mate. Perdió el trofeo de primer lugar.",
+      "Sintió que las lágrimas y el coraje le llenaban los ojos. Quería aventar el tablero. Pero recordó la enseñanza de Epicteto: 'El tablero no te derrotó; te derrotó tu propio descuido. Agradécele a tu rival por mostrarte dónde debes mejorar'.",
+      "Elías respiró hondo, le dio la mano a su rival con sinceridad y anotó la jugada en su libreta para estudiarla en casa. Esa tarde no ganó una copa de plástico, pero ganó maestría."
+    ],
+    lesson: "Una derrota no es un fracaso si te deja una lección. El sabio agradece los tropiezos porque son el mapa para ser mejor mañana."
+  },
+  {
+    id: "elias_perro_paseo",
+    title: "Elías y el Cachorro Rebelde",
+    colorScheme: "emerald",
+    paragraphs: [
+      "A Elías le tocó pasear a Bruno, un cachorro lleno de energía que olía todo, jalaba la correa y no quería avanzar. Elías empezó a desesperarse: '¡Bruno, camina ya! ¡Me estás haciendo perder el tiempo!'.",
+      "Entonces recordó la templanza: 'Bruno es un cachorro. Esperar que actúe como un soldado disciplinado es pedirle peras al olmo. El problema no es el perro; es mi expectativa'.",
+      "Aflojó la correa, dejó que Bruno olfateara un árbol y disfrutó del sol de la tarde. El paseo se volvió divertido en cuanto Elías dejó de pelear con la realidad."
+    ],
+    lesson: "No sufrimos por cómo son las cosas o los demás, sino por exigirles que sean como nosotros queremos que sean."
+  },
+  {
+    id: "elias_cumpleanos",
+    title: "Elías y el Regalo Inesperado",
+    colorScheme: "fuchsia",
+    paragraphs: [
+      "En su cumpleaños, Elías esperaba con ilusión un set de construcción carísimo que había visto en internet. Cuando abrió el paquete de sus tíos, vio un juego de mesa clásico y un libro ilustrado.",
+      "Por un segundo sintió una punzada de desilusión. Pero activó su radar de Sabiduría: 'Las cosas materiales no me definen ni me hacen más feliz. El verdadero valor de este regalo es el cariño y el tiempo que mi familia me dedicó'.",
+      "Abrió el juego de mesa, invitó a sus primos a jugar y pasaron una de las tardes más divertidas y llenas de risas del año."
+    ],
+    lesson: "La felicidad no depende de lo que recibes, sino del agradecimiento con el que decides mirarlo."
+  },
+  {
+    id: "elias_miedo_exposicion",
+    title: "Elías y la Exposición de Ciencias",
+    colorScheme: "sky",
+    paragraphs: [
+      "Frente a 50 personas en el auditorio escolar, a Elías le temblaban las piernas. Le tocaba presentar su proyecto del volcán y temía equivocarse y que todos se rieran.",
+      "Cerró los ojos un instante y se dijo a sí mismo como Marco Aurelio: '¿Qué es lo peor que puede pasar? Si me equivoco, aprendo. No busco el aplauso de todos; solo busco hacer mi parte con honor'.",
+      "Subió al escenario con la cabeza en alto. Su voz empezó tímida pero fue tomando fuerza. Al terminar, sintió la mayor victoria de todas: la de vencer su propio miedo."
+    ],
+    lesson: "El coraje no es la ausencia de miedo, sino la decisión firme de que tu propósito es más importante que tu temor."
+  },
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // NUEVAS CLÁSICAS ESTOICAS (4)
+  // ═══════════════════════════════════════════════════════════════════════════
+  {
+    id: "zenon_tinta_purpura",
+    title: "Zenón y el Naufragio de la Púrpura",
+    colorScheme: "purple",
+    paragraphs: [
+      "Zenón de Citio era un próspero comerciante que transportaba un cargamento valiosísimo de tinte de púrpura fenicia. En medio del mar, una feroz tormenta hundió su barco y lo dejó en la playa sin un solo centavo.",
+      "Cualquier hombre se habría desesperado, pero Zenón caminó hasta una librería en Atenas, comenzó a leer las enseñanzas de Sócrates y preguntó al librero: '¿Dónde puedo encontrar hombres que vivan así?'.",
+      "Años más tarde, ya como fundador de la escuela estoica, Zenón solía decir con una sonrisa: 'Mi viaje más afortunado fue aquel en el que naufragué'."
+    ],
+    lesson: "A veces la vida te quita lo que creías necesitar para abrirte la puerta a lo que realmente te hará grande: tu carácter y tu sabiduría."
+  },
+  {
+    id: "crisipo_y_el_cilindro",
+    title: "Crisipo y el Cilindro Rodante",
+    colorScheme: "stone",
+    paragraphs: [
+      "El sabio estoico Crisipo usaba un cilindro de madera para explicar la libertad mental. 'Si empujas un cilindro cuesta abajo, el empujón inicial viene de afuera, pero la forma en que rueda depende de su propia naturaleza redonda'.",
+      "Lo mismo pasa con nosotros: los problemas, las noticias o las palabras ajenas son el empujón exterior. Pero si rodamos con ira o con calma, eso depende 100% de nuestra propia mente.",
+      "Nadie puede obligarte a perder la paz; eres tú quien decide si rueda como una piedra áspera que se estrella o como una esfera serena que avanza."
+    ],
+    lesson: "Los eventos externos son el empujón, pero tu reacción depende enteramente de la forma que le des a tu mente."
+  },
+  {
+    id: "agripino_el_toro",
+    title: "Paconio Agripino y el Juicio Sereno",
+    colorScheme: "red",
+    paragraphs: [
+      "Paconio Agripino estaba a punto de almorzar cuando un mensajero entró a su casa agitado: '¡Señor! El Senado Romano está juzgando su caso en este momento y podrían condenarlo al destierro'.",
+      "Agripino lo miró con total tranquilidad y le dijo: 'Bien. Pero como aún no han dictado sentencia, ¿por qué amargarme el almuerzo?'.",
+      "Horas después regresó el mensajero: '¡Lo han desterrado de Roma!'. Agripino sonrió: 'Perfecto. Iremos a cenar a la ciudad vecina de Aricia; dicen que el aire allí es muy fresco'."
+    ],
+    lesson: "Preocuparte por lo que no ha ocurrido es sufrir dos veces. Si un problema llega, recíbelo con dignidad y busca la oportunidad oculta."
+  },
+  {
+    id: "posidonio_y_el_dolor",
+    title: "Posidonio y el Gran General",
+    colorScheme: "blue",
+    paragraphs: [
+      "El célebre general romano Pompeyo Magno fue a visitar al filósofo Posidonio a la isla de Rodas para escuchar sus lecciones. Al llegar, encontró al sabio postrado en cama por una dolorosa enfermedad en las articulaciones.",
+      "Pompeyo, apenado, le dijo: 'Siento mucho molestarte en un momento de tanto dolor'. Pero Posidonio se incorporó y comenzó a disertar sobre cómo la virtud es el único bien supremo.",
+      "Cada vez que una punzada aguda de dolor lo atacaba, Posidonio decía en voz alta: 'Es inútil, dolor. Puedes ser molesto y punzante, pero jamás lograrás que admita que eres un mal moral'."
+    ],
+    lesson: "El dolor físico o la incomodidad son inevitables, pero el sufrimiento mental es una elección. Tu mente siempre puede ser más fuerte que la molestia."
+  },
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // NUEVAS HISTORIAS MODERNAS (3)
+  // ═══════════════════════════════════════════════════════════════════════════
+  {
+    id: "grupo_escolar_vagos",
+    title: "El Trabajo en Equipo de Mateo",
+    colorScheme: "orange",
+    paragraphs: [
+      "A Mateo le tocó un equipo de cuatro compañeros para la maqueta de historia. Pronto se dio cuenta de que dos de ellos no hacían nada y el tercero ponía pretextos. Mateo estaba furioso: '¡No es justo que yo haga todo!'.",
+      "Pero en lugar de desgastarse en quejas o hacer un trabajo mediocre por despecho, pensó: 'Mi nota y mi aprendizaje son míos. Yo haré mi parte con excelencia'.",
+      "Hizo su sección impecable y habló con el maestro con respeto y hechos claros. El maestro reconoció el liderazgo de Mateo, quien aprendió que la pereza ajena nunca debe ser excusa para descuidar tu propio trabajo."
+    ],
+    lesson: "Que otros hagan mal su parte no te da permiso de descuidar la tuya. Tu estándar de excelencia te pertenece a ti, no a las circunstancias."
+  },
+  {
+    id: "bateria_agotada",
+    title: "La Tarde de la Batería al Cero Por Ciento",
+    colorScheme: "yellow",
+    paragraphs: [
+      "Se fue la luz en la colonia y el teléfono de Sofía marcó 1% antes de apagarse. Sofía sintió un vacío inmediato: '¡Me voy a morir de aburrimiento!'. No había internet ni redes sociales.",
+      "Tras 15 minutos quejándose en el sillón, miró a su alrededor. Encontró una libreta vieja y colores. Empezó a dibujar, luego ayudó a su hermano a inventar una historia con sombras y velas.",
+      "Al volver la luz, Sofía ni siquiera encendió el teléfono de inmediato. Había redescubierto que la mente tiene un universo infinito cuando no depende de una pantalla para entretenerse."
+    ],
+    lesson: "El aburrimiento no es la falta de cosas que hacer, sino la falta de presencia. La mente creativa encuentra aventura en cualquier rincón."
+  },
+  {
+    id: "secreto_guardado",
+    title: "El Secreto en el Pasillo",
+    colorScheme: "rose",
+    paragraphs: [
+      "Durante el recreo, Lucas escuchó un rumor vergonzoso sobre uno de sus compañeros de clase. La tentación de contárselo a sus amigos era enorme; sabía que ganaría atención y risas.",
+      "Pero se detuvo en seco y aplicó la triple prueba de la Templanza: '¿Es verdad comprobada? No. ¿Es bueno o útil? Para nada. ¿Me gustaría que lo hicieran conmigo? Jamás'.",
+      "Lucas decidió guardar silencio y cambiar de tema. Días después se supo que el rumor era una mentira inventada por envidia. Lucas sintió el orgullo callado de quien protege a otros con su discreción."
+    ],
+    lesson: "Hablar de los demás es fácil; tener la templanza de guardar silencio cuando un chisme no aporta nada noble es señal de grandeza interior."
+  },
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // NUEVAS PARÁBOLAS PROFUNDAS (4)
+  // ═══════════════════════════════════════════════════════════════════════════
+  {
+    id: "perro_carreta",
+    title: "El Perro y la Carreta",
+    colorScheme: "indigo",
+    paragraphs: [
+      "Un perro estaba atado con una cuerda suave a la parte trasera de una carreta en marcha. Tenía dos opciones: correr alegremente al ritmo de la carreta disfrutando del paisaje... o ponerse terco, clavar las patas y ser arrastrado por el polvo.",
+      "La carreta iba a avanzar de todos modos. El perro sabio entendió que acompañar el camino con buen ánimo era infinitamente más inteligente que lastimarse resistiéndose a lo inevitable.",
+      "El curso del universo y los cambios de la vida son esa carreta. Puedes quejarte y que te arrastren, o puedes correr con gracia y convertir cada paso en una aventura."
+    ],
+    lesson: "Aceptar lo que no puedes cambiar con buena voluntad no es debilidad; es la máxima inteligencia para no gastar tu energía en pelear contra molinos de viento."
+  },
+  {
+    id: "escultor_bloque_marmol",
+    title: "El Bloque de Mármol sin Forma",
+    colorScheme: "stone",
+    paragraphs: [
+      "Un joven aprendiz de escultor se quejaba ante su maestro: 'Este bloque de piedra es demasiado duro, tiene vetas oscuras y no tiene forma de nada. ¡Es imposible trabajar con él!'.",
+      "El maestro tomó el cincel y le dijo: 'La piedra no tiene la culpa de ser dura. Su dureza es precisamente lo que permitirá que la estatua dure mil años. Tu trabajo no es pedir un mármol blando, sino afilar tu cincel y golpear con paciencia'.",
+      "La vida nunca te da un carácter ya esculpido ni días perfectos. Te da piedras toscas para que tú descubras la obra de arte que llevas dentro."
+    ],
+    lesson: "Las dificultades no son obstáculos que te arruinan el día; son el mármol resistente con el que esculpes tu fortaleza."
+  },
+  {
+    id: "dos_lobos_mente",
+    title: "El Manantial y el Lodo",
+    colorScheme: "cyan",
+    paragraphs: [
+      "Un viajero llegó a un manantial de agua pura en la montaña, pero al meter sus botas levantó todo el lodo del fondo, volviendo el agua turbia y lodosa. Angustiado, intentó limpiar el agua con sus manos, pero solo la revolvía más.",
+      "Un anciano que pasaba le dijo: 'Siéntate y espera. Deja de agitar el agua'. El viajero esperó en silencio. Poco a poco, el lodo se asentó en el fondo y el agua volvió a ser tan cristalina como un espejo.",
+      "Cuando tu mente esté llena de enojo o confusión, no intentes arreglarlo peleando o tomando decisiones impulsivas. Detente, respira y espera a que el lodo se asiente."
+    ],
+    lesson: "La claridad mental no se alcanza forzando las cosas, sino dándole tiempo a la calma para que el lodo de las emociones baje al fondo."
+  },
+  {
+    id: "farol_en_la_niebla",
+    title: "El Barquero y la Niebla Espesa",
+    colorScheme: "emerald",
+    paragraphs: [
+      "Un barquero cruzaba un río ancho cuando cayó una niebla tan densa que no se veía ni a un metro de distancia. La corriente era fuerte y el viento amenazaba con volcar la barca.",
+      "En lugar de remar a lo loco hacia cualquier lado, el barquero encendió un farol pequeño en la proa y echó el ancla para no perderse. Esperó paciente a que el viento disipara la niebla.",
+      "Cuando en tu vida todo parezca confuso y no sepas qué decisión tomar, no remes a ciegas. Enciende tu farol interior (tus valores y la razón) y mantén el ancla de tu calma hasta que el panorama se aclare."
+    ],
+    lesson: "En momentos de confusión e incertidumbre, la mejor decisión es no precipitarse. Quédate firme en tus principios hasta que puedas ver con claridad."
   }
 ];
+
