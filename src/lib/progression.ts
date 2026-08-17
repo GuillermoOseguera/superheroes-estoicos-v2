@@ -14,6 +14,7 @@ export interface UnlockableStory {
 export const GAME_UNLOCK_LEVELS: Record<string, number> = {
   "dos-cajas": 1,
   "desafio-virtudes": 1,
+  "esfera-logos": 2,
   "semaforo-emocional": 2,
   "vuelo-buho": 3,
   "constructor-escudo": 3,

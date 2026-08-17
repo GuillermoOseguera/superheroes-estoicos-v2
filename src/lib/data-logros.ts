@@ -45,6 +45,14 @@ export const ALL_ACHIEVEMENTS: Achievement[] = [
   { id: "falange_naves", icon: "🚀", label: "Tres Escudos, Un Espíritu", desc: "Juega una partida con cada una de las 3 naves", color: "#38bdf8" },
   { id: "falange_arma_max", icon: "⚡", label: "Arsenal Estoico", desc: "Alcanza el nivel de arma máximo en una partida", color: "#f59e0b" },
 
+  // La Esfera del Logos (Rompe-bloques de falsas creencias)
+  { id: "logos_1", icon: "✨", label: "Chispa de la Razón", desc: "Completa el Nivel 1 en La Esfera del Logos", color: "#fbbf24" },
+  { id: "logos_2", icon: "🔮", label: "Rompedor de Ilusiones", desc: "Destruye 40 bloques de falsas creencias", color: "#f59e0b" },
+  { id: "logos_3", icon: "🏛️", label: "Mente Inquebrantable", desc: "Supera el Nivel 3 en La Esfera del Logos", color: "#d97706" },
+  { id: "logos_combo", icon: "⚡", label: "Foco Imperturbable", desc: "Alcanza un combo x8 en La Esfera del Logos", color: "#38bdf8" },
+  { id: "logos_powers", icon: "💎", label: "Sabiduría Aplicada", desc: "Recoge 5 poderes estoicos en una sola partida", color: "#a855f7" },
+
+
   // XP Global y Niveles
   { id: "mente_acero", icon: "🪖", label: "Mente de Acero", desc: "Gana 500 XP totales", color: "#475569" },
   { id: "corazon_leon", icon: "🦁", label: "Corazón de León", desc: "Alcanza Nivel 5", color: "#facc15" },

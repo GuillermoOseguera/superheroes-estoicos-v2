@@ -49,6 +49,17 @@ const GAMES = [
     requiredLevel: getRequiredLevelForGame("memoria-estoica"),
   },
   {
+    id: "esfera-logos",
+    href: "/juegos/esfera-logos",
+    title: "La Esfera del Logos",
+    emoji: "✨",
+    description: "Destruye los muros de las falsas creencias y libera los poderes estoicos.",
+    color: "#f59e0b",
+    xp: "Hasta 85 XP por templo",
+    virtue: "Sabiduría y Fortaleza",
+    requiredLevel: getRequiredLevelForGame("esfera-logos"),
+  },
+  {
     id: "semaforo-emocional",
     href: "/juegos/semaforo",
     title: "Semáforo Emocional",
@@ -109,6 +120,7 @@ const GAMES = [
 const GAME_ID_MAP: Record<string, string> = {
   "dos-cajas": "dos_cajas",
   "desafio-virtudes": "desafio_virtudes",
+  "esfera-logos": "esfera_logos",
   "memoria-estoica": "memoria_estoica",
   "semaforo-emocional": "semaforo_emocional",
   "defensor-mente": "defensor_mente",
