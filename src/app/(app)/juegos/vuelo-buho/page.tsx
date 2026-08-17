@@ -5,22 +5,27 @@ import { motion, AnimatePresence } from "framer-motion";
 import confetti from "canvas-confetti";
 import Link from "next/link";
 import { toast } from "sonner";
+import { Volume2, VolumeX, Music, Shield, Sparkles } from "lucide-react";
 import { useProfile } from "@/lib/profile-store";
 import { addGameXP, addVirtueXP, unlockAchievement } from "@/lib/supabase";
+import { soundFX } from "@/lib/sound-fx";
 
-// ─── Constantes de Física y Diseño ──────────────────────────────────────────
+// ─── Constantes de Física Calibrada y Amigable ─────────────────────────────
 
 const W = 400; // Resolución interna del canvas
 const H = 640;
-const GRAVITY = 1500;
-const FLAP_VELOCITY = -420;
-const MAX_FALL_SPEED = 620;
+const GRAVITY = 960; // Gravedad suave y balanceada (antes 1500)
+const FLAP_VELOCITY = -340; // Impulso noble (antes -420)
+const GLIDE_FALL_SPEED = 90; // Velocidad de caída al planear (mantener presionado)
+const MAX_FALL_SPEED = 460; // Límite de velocidad de caída (antes 620)
 const OWL_X = W * 0.28;
-const OWL_RADIUS = 20;
-const PILLAR_WIDTH = 66;
-const BASE_GAP = 190;
-const MIN_GAP = 148;
-const BASE_PILLAR_SPEED = 165;
+const OWL_RADIUS = 20; // Radio visual
+const OWL_COLLISION_RADIUS = 13; // Hitbox benévolo y perdonador (65% del tamaño visual)
+const PILLAR_WIDTH = 64;
+const BASE_GAP = 215; // Hueco inicial más amplio y cómodo (antes 190)
+const MIN_GAP = 168; // Hueco mínimo accesible (antes 148)
+const BASE_PILLAR_SPEED = 145; // Velocidad horizontal controlada (antes 165)
+const SPACING = 290; // Distancia entre columnas con tiempo de reacción (antes 240)
 
 const STOIC_QUOTES = [
   "“El impedimento a la acción avanza la acción. Lo que se interpone en el camino, se convierte en el camino.” — Marco Aurelio",
@@ -28,7 +33,7 @@ const STOIC_QUOTES = [
   "“La dificultad muestra al hombre.” — Epicteto",
   "“Caíste. Eso no importa. Lo que importa es que vuelvas a levantar el vuelo.” — Sabiduría del Búho",
   "“No busques que las cosas sucedan como quieres, sino desea que sucedan como suceden.” — Epicteto",
-  "“Cada intento fallido es información, no fracaso.” — Academia Estoica",
+  "“Cada tropiezo es entrenamiento para la mente.” — Academia Estoica",
 ];
 
 interface Pillar {
@@ -54,16 +59,36 @@ interface Distraction {
 }
 
 interface Feather {
-  x: number; y: number; vx: number; vy: number; life: number; rot: number;
+  x: number;
+  y: number;
+  vx: number;
+  vy: number;
+  life: number;
+  rot: number;
+  color?: string;
 }
 
 interface Burst {
-  x: number; y: number; vx: number; vy: number; life: number; color: string; size: number;
+  x: number;
+  y: number;
+  vx: number;
+  vy: number;
+  life: number;
+  color: string;
+  size: number;
+}
+
+interface FloatText {
+  x: number;
+  y: number;
+  text: string;
+  color: string;
+  life: number;
 }
 
 const DISTRACTION_EMOJIS = ["📱", "🍬", "💭", "👾"];
 
-// Paletas de cielo que van cambiando según la distancia recorrida (sensación de "viaje")
+// Paletas de cielo dinámicas según la distancia recorrida
 const SKY_PALETTES = [
   { top: "#7dd3fc", bottom: "#e0f2fe", mountain: "#5b8fb0", name: "Amanecer" },
   { top: "#38bdf8", bottom: "#bae6fd", mountain: "#3f7ea6", name: "Día Claro" },
@@ -95,43 +120,63 @@ export default function VueloBuhoPage() {
   const [quote, setQuote] = useState(STOIC_QUOTES[0]);
   const [shake, setShake] = useState(false);
 
-  // Estado mutable del motor (evita renders por frame)
+  // Audio States
+  const [sfxMuted, setSfxMuted] = useState(soundFX.getSfxMuted());
+  const [musicMuted, setMusicMuted] = useState(soundFX.getMusicMuted());
+  const [shieldActive, setShieldActive] = useState(true);
+
+  // Estado mutable del motor de juego
   const engine = useRef({
-    owlY: H * 0.4,
+    owlY: H * 0.45,
     owlV: 0,
     owlRot: 0,
+    isGliding: false,
+    shields: 1, // Escudo Estoico: perdona 1 choque con columnas
+    invulnerableTimer: 0,
     pillars: [] as Pillar[],
     orbs: [] as Orb[],
     distractions: [] as Distraction[],
     feathers: [] as Feather[],
     bursts: [] as Burst[],
+    floatTexts: [] as FloatText[],
     score: 0,
     orbsCollected: 0,
     distance: 0,
     running: false,
     lastSpawnX: 0,
-    stars: Array.from({ length: 40 }, () => ({ x: Math.random() * W, y: Math.random() * H * 0.6, r: Math.random() * 1.6 + 0.4, tw: Math.random() * Math.PI * 2 })),
+    stars: Array.from({ length: 40 }, () => ({
+      x: Math.random() * W,
+      y: Math.random() * H * 0.6,
+      r: Math.random() * 1.6 + 0.4,
+      tw: Math.random() * Math.PI * 2,
+    })),
   });
 
   const rafRef = useRef<number>(0);
   const lastTimeRef = useRef<number>(0);
+  const isPointerDownRef = useRef<boolean>(false);
 
-  // ─── Ciclo de vida ─────────────────────────────────────────────────
+  // ─── Ciclo de vida y Reinicio ──────────────────────────────────────────
 
   const resetEngine = useCallback(() => {
     const e = engine.current;
-    e.owlY = H * 0.4;
+    e.owlY = H * 0.45;
     e.owlV = 0;
     e.owlRot = 0;
-    e.pillars = [{ x: W + 120, gapY: H * 0.45, gap: BASE_GAP, passed: false }];
+    e.isGliding = false;
+    e.shields = 1;
+    e.invulnerableTimer = 0;
+    e.pillars = [{ x: W + 140, gapY: H * 0.45, gap: BASE_GAP, passed: false }];
     e.orbs = [];
     e.distractions = [];
     e.feathers = [];
     e.bursts = [];
+    e.floatTexts = [];
     e.score = 0;
     e.orbsCollected = 0;
     e.distance = 0;
-    e.lastSpawnX = W + 120;
+    e.lastSpawnX = W + 140;
+    setShieldActive(true);
   }, []);
 
   const flap = useCallback(() => {
@@ -141,18 +186,23 @@ export default function VueloBuhoPage() {
       e.running = true;
       setGameState("playing");
       setUiScore(0);
+      soundFX.startAmbientMusic();
     }
     if (gameState === "dead") return;
+
     e.owlV = FLAP_VELOCITY;
+    soundFX.flap();
+
     // Partículas de plumas
-    for (let i = 0; i < 4; i++) {
+    for (let i = 0; i < 3; i++) {
       e.feathers.push({
         x: OWL_X - 10,
-        y: e.owlY + 6,
-        vx: -80 - Math.random() * 60,
-        vy: (Math.random() - 0.5) * 80,
-        life: 1,
+        y: e.owlY + 4,
+        vx: -60 - Math.random() * 50,
+        vy: (Math.random() - 0.5) * 60,
+        life: 0.9,
         rot: Math.random() * Math.PI,
+        color: "#d99a4e",
       });
     }
   }, [gameState, resetEngine]);
@@ -160,6 +210,8 @@ export default function VueloBuhoPage() {
   const triggerDeath = useCallback(async () => {
     const e = engine.current;
     e.running = false;
+    soundFX.gameOver();
+
     setShake(true);
     setTimeout(() => setShake(false), 350);
     setGameState("dead");
@@ -168,13 +220,20 @@ export default function VueloBuhoPage() {
 
     const finalScore = e.score;
     setUiScore(finalScore);
-    setBestScore((b) => Math.max(b, finalScore));
+    setBestScore((b) => {
+      const isNewBest = finalScore > b;
+      if (isNewBest && finalScore >= 5) {
+        soundFX.victory();
+        confetti({ particleCount: 80, spread: 70, origin: { y: 0.5 } });
+      }
+      return Math.max(b, finalScore);
+    });
 
     if (!activeProfile) return;
     setIsSubmitting(true);
     try {
-      const xpEarned = Math.min(70, 8 + finalScore * 2 + e.orbsCollected);
-      const wisdomEarned = Math.min(40, 3 + e.orbsCollected * 3);
+      const xpEarned = Math.min(80, 10 + finalScore * 2 + e.orbsCollected * 2);
+      const wisdomEarned = Math.min(45, 5 + e.orbsCollected * 3);
       await addGameXP(activeProfile.id, "vuelo_buho", finalScore, xpEarned);
       await addVirtueXP(activeProfile.id, "wisdom", wisdomEarned);
       setLastReward({ xp: xpEarned, wisdom: wisdomEarned });
@@ -184,8 +243,8 @@ export default function VueloBuhoPage() {
       if (finalScore >= 50) await unlockAchievement(activeProfile.id, "buho_3");
       if (finalScore >= 100) await unlockAchievement(activeProfile.id, "buho_max");
 
-      if (finalScore > 0 && finalScore % 20 === 0) {
-        confetti({ particleCount: 140, spread: 100, origin: { y: 0.4 } });
+      if (finalScore > 0 && finalScore % 15 === 0) {
+        confetti({ particleCount: 120, spread: 90, origin: { y: 0.4 } });
       }
       refreshProfile();
     } catch (err) {
@@ -198,22 +257,23 @@ export default function VueloBuhoPage() {
 
   const spawnPillarIfNeeded = useCallback(() => {
     const e = engine.current;
-    const SPACING = 240;
-    if (e.lastSpawnX < W + 500) {
-      const difficulty = Math.min(1, e.score / 30);
+    if (e.lastSpawnX < W + 450) {
+      // Progresión suave de dificultad
+      const difficulty = Math.min(1, e.score / 45);
       const gap = BASE_GAP - (BASE_GAP - MIN_GAP) * difficulty;
-      const margin = 90;
-      const gapY = margin + Math.random() * (H - margin * 2 - 120);
+      const margin = 100;
+      const gapY = margin + Math.random() * (H - margin * 2 - 100);
       const x = e.lastSpawnX + SPACING;
       e.pillars.push({ x, gapY, gap, passed: false });
 
-      // Orbe de sabiduría en el hueco (70% de las veces)
-      if (Math.random() < 0.7) {
-        e.orbs.push({ x, y: gapY, taken: false, bob: Math.random() * Math.PI * 2 });
-      } else if (Math.random() < 0.5) {
+      // Orbe de sabiduría en el hueco (75% de probabilidad)
+      if (Math.random() < 0.75) {
+        e.orbs.push({ x: x + PILLAR_WIDTH / 2, y: gapY, taken: false, bob: Math.random() * Math.PI * 2 });
+      } else if (Math.random() < 0.4) {
+        // Distracción colocada con margen seguro
         e.distractions.push({
-          x,
-          y: gapY + (Math.random() - 0.5) * 50,
+          x: x + PILLAR_WIDTH / 2,
+          y: gapY + (Math.random() > 0.5 ? 40 : -40),
           emoji: DISTRACTION_EMOJIS[Math.floor(Math.random() * DISTRACTION_EMOJIS.length)],
           taken: false,
           bob: Math.random() * Math.PI * 2,
@@ -223,14 +283,14 @@ export default function VueloBuhoPage() {
     }
   }, []);
 
-  // ─── Loop principal ────────────────────────────────────────────────
+  // ─── Renderizado Canvas ────────────────────────────────────────────
 
   const draw = useCallback((ctx: CanvasRenderingContext2D, dt: number) => {
     const e = engine.current;
-    const speed = BASE_PILLAR_SPEED + Math.min(140, e.score * 3);
+    const speed = BASE_PILLAR_SPEED + Math.min(85, e.score * 1.8);
 
     // Paleta según distancia
-    const phaseF = Math.min(SKY_PALETTES.length - 1.001, e.distance / 3200);
+    const phaseF = Math.min(SKY_PALETTES.length - 1.001, e.distance / 3500);
     const phaseIdx = Math.floor(phaseF);
     const phaseT = phaseF - phaseIdx;
     const pa = SKY_PALETTES[phaseIdx];
@@ -238,7 +298,7 @@ export default function VueloBuhoPage() {
     const skyTop = lerpColor(pa.top, pb.top, phaseT);
     const skyBottom = lerpColor(pa.bottom, pb.bottom, phaseT);
     const mountainColor = lerpColor(pa.mountain, pb.mountain, phaseT);
-    const isNight = phaseF > 3.3;
+    const isNight = phaseF > 3.2;
 
     // ── Cielo ──
     const grad = ctx.createLinearGradient(0, 0, 0, H);
@@ -247,7 +307,7 @@ export default function VueloBuhoPage() {
     ctx.fillStyle = grad;
     ctx.fillRect(0, 0, W, H);
 
-    // Estrellas (solo de noche)
+    // Estrellas (en fases nocturnas)
     if (isNight) {
       ctx.save();
       e.stars.forEach((s) => {
@@ -260,39 +320,39 @@ export default function VueloBuhoPage() {
       ctx.restore();
     }
 
-    // Sol/Luna
+    // Sol / Luna
     const sunX = W - 70;
-    const sunY = 90 + phaseF * 8;
+    const sunY = 90 + phaseF * 6;
     ctx.save();
     ctx.globalAlpha = 0.9;
     ctx.fillStyle = isNight ? "#f8fafc" : phaseF > 2 ? "#fde68a" : "#fef9c3";
     ctx.shadowColor = ctx.fillStyle as string;
-    ctx.shadowBlur = 30;
+    ctx.shadowBlur = 24;
     ctx.beginPath();
-    ctx.arc(sunX, sunY, 26, 0, Math.PI * 2);
+    ctx.arc(sunX, sunY, 24, 0, Math.PI * 2);
     ctx.fill();
     ctx.restore();
 
-    // Montañas lejanas (parallax lento)
+    // Montañas (Parallax suave)
     ctx.fillStyle = mountainColor;
     ctx.globalAlpha = 0.55;
     ctx.beginPath();
-    ctx.moveTo(0, H * 0.62);
-    const mParallax = (e.distance * 0.15) % 160;
+    ctx.moveTo(0, H * 0.64);
+    const mParallax = (e.distance * 0.12) % 160;
     for (let x = -160; x <= W + 160; x += 80) {
       const px = x - mParallax;
-      ctx.lineTo(px, H * 0.62 - Math.abs(Math.sin(px * 0.01)) * 70 - 30);
+      ctx.lineTo(px, H * 0.64 - Math.abs(Math.sin(px * 0.01)) * 60 - 24);
     }
-    ctx.lineTo(W, H * 0.62);
+    ctx.lineTo(W, H * 0.64);
     ctx.lineTo(W, H);
     ctx.lineTo(0, H);
     ctx.closePath();
     ctx.fill();
     ctx.globalAlpha = 1;
 
-    // Nubes (parallax medio)
-    ctx.fillStyle = isNight ? "rgba(148,163,184,0.25)" : "rgba(255,255,255,0.75)";
-    const cParallax = (e.distance * 0.35) % (W + 200);
+    // Nubes
+    ctx.fillStyle = isNight ? "rgba(148,163,184,0.22)" : "rgba(255,255,255,0.72)";
+    const cParallax = (e.distance * 0.3) % (W + 200);
     for (let i = 0; i < 4; i++) {
       const cx = ((i * 180 - cParallax) % (W + 200)) - 100;
       const cy = 60 + (i % 2) * 90;
@@ -303,10 +363,7 @@ export default function VueloBuhoPage() {
       ctx.fill();
     }
 
-    // ── Suelo decorativo (línea de base) ──
-    const groundY = H - 10;
-
-    // ── Columnas (obstáculos) ──
+    // ── Columnas de Templos Griegos ──
     e.pillars.forEach((p) => {
       const topH = p.gapY - p.gap / 2;
       const botY = p.gapY + p.gap / 2;
@@ -326,7 +383,7 @@ export default function VueloBuhoPage() {
         ctx.fillStyle = pg;
         ctx.fillRect(p.x, y, PILLAR_WIDTH, h);
 
-        // Estrías (flutes)
+        // Estrías
         ctx.strokeStyle = "rgba(120,110,80,0.25)";
         ctx.lineWidth = 2;
         for (let fx = p.x + 8; fx < p.x + PILLAR_WIDTH - 4; fx += 9) {
@@ -336,66 +393,55 @@ export default function VueloBuhoPage() {
           ctx.stroke();
         }
 
-        // Capitel (decoración en el extremo hacia el hueco)
+        // Capitel decorativo
         const capY = flip ? y + h - 16 : y;
         ctx.fillStyle = "#b8ac88";
-        ctx.fillRect(p.x - 6, capY, PILLAR_WIDTH + 12, 16);
+        ctx.fillRect(p.x - 4, capY, PILLAR_WIDTH + 8, 16);
         ctx.fillStyle = "#8f8360";
-        ctx.fillRect(p.x - 6, capY + (flip ? 0 : 12), PILLAR_WIDTH + 12, 4);
-
-        // Sombra hacia el hueco
-        const shadowGrad = ctx.createLinearGradient(0, flip ? capY - 20 : capY + 16, 0, flip ? capY : capY + 36);
-        shadowGrad.addColorStop(0, "rgba(0,0,0,0)");
-        shadowGrad.addColorStop(1, "rgba(0,0,0,0.25)");
-        ctx.fillStyle = shadowGrad;
-        ctx.fillRect(p.x - 6, flip ? capY - 20 : capY + 16, PILLAR_WIDTH + 12, 20);
+        ctx.fillRect(p.x - 4, capY + (flip ? 0 : 12), PILLAR_WIDTH + 8, 4);
       });
     });
 
-    // ── Orbes de sabiduría ──
+    // ── Orbes de Sabiduría (Pergaminos dorados) ──
     e.orbs.forEach((o) => {
       if (o.taken) return;
-      const bobY = o.y + Math.sin(performance.now() / 300 + o.bob) * 6;
-      const glow = ctx.createRadialGradient(o.x, bobY, 0, o.x, bobY, 18);
-      glow.addColorStop(0, "rgba(253,224,71,0.9)");
+      const bobY = o.y + Math.sin(performance.now() / 280 + o.bob) * 5;
+      const glow = ctx.createRadialGradient(o.x, bobY, 0, o.x, bobY, 20);
+      glow.addColorStop(0, "rgba(253,224,71,0.95)");
       glow.addColorStop(1, "rgba(253,224,71,0)");
       ctx.fillStyle = glow;
       ctx.beginPath();
-      ctx.arc(o.x, bobY, 18, 0, Math.PI * 2);
+      ctx.arc(o.x, bobY, 20, 0, Math.PI * 2);
       ctx.fill();
       ctx.font = "22px serif";
       ctx.textAlign = "center";
       ctx.textBaseline = "middle";
-      ctx.fillText("\u{1F4D6}", o.x, bobY);
+      ctx.fillText("📖", o.x, bobY);
     });
 
-    // ── Distracciones ──
+    // ── Distracciones (No letales, causan desconcentración) ──
     e.distractions.forEach((d) => {
       if (d.taken) return;
-      const bobY = d.y + Math.sin(performance.now() / 260 + d.bob) * 8;
-      ctx.font = "24px serif";
+      const bobY = d.y + Math.sin(performance.now() / 240 + d.bob) * 7;
+      ctx.font = "22px serif";
       ctx.textAlign = "center";
       ctx.textBaseline = "middle";
-      ctx.save();
-      ctx.globalAlpha = 0.95;
       ctx.fillText(d.emoji, d.x, bobY);
-      ctx.restore();
     });
 
-    // ── Plumas ──
+    // ── Partículas (Plumas y Destellos) ──
     e.feathers.forEach((f) => {
       ctx.save();
-      ctx.globalAlpha = Math.max(0, f.life);
       ctx.translate(f.x, f.y);
       ctx.rotate(f.rot);
-      ctx.fillStyle = "#d97706";
+      ctx.globalAlpha = Math.max(0, f.life);
+      ctx.fillStyle = f.color || "#d99a4e";
       ctx.beginPath();
-      ctx.ellipse(0, 0, 6, 3, 0, 0, Math.PI * 2);
+      ctx.ellipse(0, 0, 7, 3, 0, 0, Math.PI * 2);
       ctx.fill();
       ctx.restore();
     });
 
-    // ── Ráfagas de impacto ──
     e.bursts.forEach((b) => {
       ctx.save();
       ctx.globalAlpha = Math.max(0, b.life);
@@ -406,25 +452,50 @@ export default function VueloBuhoPage() {
       ctx.restore();
     });
 
-    // ── Búho ──
+    // ── Textos Flotantes (+1 Sabiduría / -1 Foco) ──
+    e.floatTexts.forEach((ft) => {
+      ctx.save();
+      ctx.globalAlpha = Math.max(0, ft.life);
+      ctx.font = "bold 14px var(--font-display, sans-serif)";
+      ctx.fillStyle = ft.color;
+      ctx.textAlign = "center";
+      ctx.shadowColor = "rgba(0,0,0,0.8)";
+      ctx.shadowBlur = 4;
+      ctx.fillText(ft.text, ft.x, ft.y);
+      ctx.restore();
+    });
+
+    // ── El Búho Estoico ──
     ctx.save();
     ctx.translate(OWL_X, e.owlY);
     ctx.rotate(e.owlRot);
 
-    // Sombra
-    ctx.save();
-    ctx.globalAlpha = 0.2;
-    ctx.fillStyle = "#000";
-    ctx.beginPath();
-    ctx.ellipse(2, OWL_RADIUS + 6, OWL_RADIUS * 0.8, 5, 0, 0, Math.PI * 2);
-    ctx.fill();
-    ctx.restore();
+    // Efecto de parpadeo durante invulnerabilidad tras usar Escudo
+    if (e.invulnerableTimer > 0) {
+      ctx.globalAlpha = 0.5 + Math.sin(performance.now() / 60) * 0.4;
+    }
 
-    // Alas (detrás del cuerpo)
-    const flapPhase = Math.sin(performance.now() / 90) * 0.5 + (e.owlV < 0 ? 0.5 : 0);
+    // Aura dorada del Escudo Estoico
+    if (e.shields > 0) {
+      const shieldPulse = 1 + Math.sin(performance.now() / 180) * 0.1;
+      const shieldGlow = ctx.createRadialGradient(0, 0, OWL_RADIUS, 0, 0, (OWL_RADIUS + 12) * shieldPulse);
+      shieldGlow.addColorStop(0, "rgba(251, 191, 36, 0.4)");
+      shieldGlow.addColorStop(1, "rgba(251, 191, 36, 0)");
+      ctx.fillStyle = shieldGlow;
+      ctx.beginPath();
+      ctx.arc(0, 0, (OWL_RADIUS + 12) * shieldPulse, 0, Math.PI * 2);
+      ctx.fill();
+    }
+
+    // Alas (Animadas: abiertas al planear, aleteo dinámico)
+    const isGliding = e.isGliding && e.owlV >= 0;
+    const flapPhase = isGliding
+      ? 1.2
+      : Math.sin(performance.now() / 90) * 0.5 + (e.owlV < 0 ? 0.6 : 0);
+
     ctx.fillStyle = "#7c4a1e";
     ctx.beginPath();
-    ctx.ellipse(-6, 4 + flapPhase * 6, 14, 9, 0.5 + flapPhase * 0.4, 0, Math.PI * 2);
+    ctx.ellipse(-6, 3 + flapPhase * 4, isGliding ? 18 : 14, isGliding ? 11 : 9, 0.4 + flapPhase * 0.3, 0, Math.PI * 2);
     ctx.fill();
 
     // Cuerpo
@@ -437,13 +508,13 @@ export default function VueloBuhoPage() {
     ctx.ellipse(0, 0, OWL_RADIUS, OWL_RADIUS * 1.05, 0, 0, Math.PI * 2);
     ctx.fill();
 
-    // Panza clara
+    // Panza
     ctx.fillStyle = "#fef3c7";
     ctx.beginPath();
     ctx.ellipse(2, 6, OWL_RADIUS * 0.55, OWL_RADIUS * 0.65, 0, 0, Math.PI * 2);
     ctx.fill();
 
-    // Cejas (ceño sabio)
+    // Cejas sabias
     ctx.strokeStyle = "#5b3a1a";
     ctx.lineWidth = 2;
     ctx.beginPath();
@@ -478,7 +549,7 @@ export default function VueloBuhoPage() {
     ctx.closePath();
     ctx.fill();
 
-    // Laurel (toque estoico)
+    // Corona de Laurel Estoica
     ctx.strokeStyle = "#4d7c0f";
     ctx.lineWidth = 2;
     ctx.beginPath();
@@ -487,15 +558,15 @@ export default function VueloBuhoPage() {
 
     ctx.restore();
 
-    // Viñeta
-    const vg = ctx.createRadialGradient(W / 2, H / 2, H * 0.4, W / 2, H / 2, H * 0.75);
+    // Viñeta atmosférica
+    const vg = ctx.createRadialGradient(W / 2, H / 2, H * 0.45, W / 2, H / 2, H * 0.78);
     vg.addColorStop(0, "rgba(0,0,0,0)");
-    vg.addColorStop(1, "rgba(0,0,0,0.28)");
+    vg.addColorStop(1, "rgba(0,0,0,0.22)");
     ctx.fillStyle = vg;
     ctx.fillRect(0, 0, W, H);
-
-    void groundY;
   }, []);
+
+  // ─── Loop de Física y Actualización ────────────────────────────────
 
   const step = useCallback(
     (time: number) => {
@@ -509,70 +580,136 @@ export default function VueloBuhoPage() {
       const e = engine.current;
 
       if (e.running) {
-        const speed = BASE_PILLAR_SPEED + Math.min(140, e.score * 3);
+        const speed = BASE_PILLAR_SPEED + Math.min(85, e.score * 1.8);
+        e.isGliding = isPointerDownRef.current;
 
-        // Física del búho
-        e.owlV = Math.min(MAX_FALL_SPEED, e.owlV + GRAVITY * dt);
+        // Temporizador de invulnerabilidad
+        if (e.invulnerableTimer > 0) {
+          e.invulnerableTimer = Math.max(0, e.invulnerableTimer - dt);
+        }
+
+        // 🪽 Mecánica de Planeo vs Caída Libre
+        if (e.isGliding && e.owlV > GLIDE_FALL_SPEED) {
+          // Si mantiene presionado, amortigua la caída suavemente
+          e.owlV = Math.max(GLIDE_FALL_SPEED, e.owlV - 800 * dt);
+        } else {
+          e.owlV = Math.min(MAX_FALL_SPEED, e.owlV + GRAVITY * dt);
+        }
+
         e.owlY += e.owlV * dt;
-        e.owlRot = Math.max(-0.5, Math.min(1.3, e.owlV / 500));
+        e.owlRot = Math.max(-0.4, Math.min(0.9, e.owlV / 440));
         e.distance += speed * dt;
 
-        // Colisión con techo/suelo
+        // Techo
         if (e.owlY - OWL_RADIUS < 0) {
           e.owlY = OWL_RADIUS;
           e.owlV = 0;
         }
-        if (e.owlY + OWL_RADIUS > H - 6) {
+
+        // Suelo (Muerte)
+        if (e.owlY + OWL_RADIUS > H - 8) {
           triggerDeath();
         }
 
-        // Mover columnas
+        // Mover columnas y objetos
         e.pillars.forEach((p) => (p.x -= speed * dt));
         e.orbs.forEach((o) => (o.x -= speed * dt));
         e.distractions.forEach((d) => (d.x -= speed * dt));
         e.lastSpawnX -= speed * dt;
 
-        // Puntaje al pasar columnas
+        // Paso exitoso de columna
         e.pillars.forEach((p) => {
-          if (!p.passed && p.x + PILLAR_WIDTH < OWL_X - OWL_RADIUS) {
+          if (!p.passed && p.x + PILLAR_WIDTH < OWL_X - OWL_COLLISION_RADIUS) {
             p.passed = true;
             e.score += 1;
             setUiScore(e.score);
+            soundFX.passPillar();
           }
         });
 
-        // Colisiones con columnas
+        // 🛡️ Colisiones con columnas (con Escudo Protector)
         for (const p of e.pillars) {
-          if (OWL_X + OWL_RADIUS * 0.75 > p.x && OWL_X - OWL_RADIUS * 0.75 < p.x + PILLAR_WIDTH) {
+          if (OWL_X + OWL_COLLISION_RADIUS > p.x && OWL_X - OWL_COLLISION_RADIUS < p.x + PILLAR_WIDTH) {
             const topH = p.gapY - p.gap / 2;
             const botY = p.gapY + p.gap / 2;
-            if (e.owlY - OWL_RADIUS * 0.75 < topH || e.owlY + OWL_RADIUS * 0.75 > botY) {
-              triggerDeath();
-              break;
+            const hitsColumn = e.owlY - OWL_COLLISION_RADIUS < topH || e.owlY + OWL_COLLISION_RADIUS > botY;
+
+            if (hitsColumn) {
+              if (e.invulnerableTimer > 0) {
+                // Durante invulnerabilidad no recibe daño
+                continue;
+              }
+
+              if (e.shields > 0) {
+                // 🛡️ El Escudo Estoico absorbe el golpe
+                e.shields -= 1;
+                setShieldActive(false);
+                e.invulnerableTimer = 1.5;
+                e.owlV = -180; // Pequeño rebote seguro
+                e.owlY = p.gapY; // Centra al búho en el hueco
+                soundFX.shieldAbsorb();
+
+                e.bursts.push({
+                  x: OWL_X,
+                  y: e.owlY,
+                  vx: 0,
+                  vy: 0,
+                  life: 1,
+                  color: "rgba(251, 191, 36, 0.85)",
+                  size: 16,
+                });
+
+                e.floatTexts.push({
+                  x: OWL_X + 20,
+                  y: e.owlY - 20,
+                  text: "🛡️ ¡Escudo activado!",
+                  color: "#fbbf24",
+                  life: 1.2,
+                });
+                break;
+              } else {
+                triggerDeath();
+                break;
+              }
             }
           }
         }
 
-        // Colisión con orbes
+        // Colisión con Orbes de Sabiduría
         e.orbs.forEach((o) => {
           if (o.taken) return;
-          const dx = o.x - OWL_X, dy = o.y - e.owlY;
-          if (dx * dx + dy * dy < (OWL_RADIUS + 14) * (OWL_RADIUS + 14)) {
+          const dx = o.x - OWL_X;
+          const dy = o.y - e.owlY;
+          if (dx * dx + dy * dy < (OWL_RADIUS + 16) * (OWL_RADIUS + 16)) {
             o.taken = true;
             e.orbsCollected += 1;
             e.score += 1;
             setUiScore(e.score);
-            e.bursts.push({ x: o.x, y: o.y, vx: 0, vy: 0, life: 1, color: "rgba(253,224,71,0.9)", size: 4 });
+            soundFX.collectWisdom();
+
+            e.bursts.push({ x: o.x, y: o.y, vx: 0, vy: 0, life: 1, color: "rgba(253,224,71,0.95)", size: 6 });
+            e.floatTexts.push({ x: o.x, y: o.y - 10, text: "+1 Sabiduría 📖", color: "#fef08a", life: 1 });
           }
         });
 
-        // Colisión con distracciones
+        // Colisión con Distracciones (No letales: alerta + pérdida leve)
         for (const d of e.distractions) {
           if (d.taken) continue;
-          const dx = d.x - OWL_X, dy = d.y - e.owlY;
-          if (dx * dx + dy * dy < (OWL_RADIUS + 12) * (OWL_RADIUS + 12)) {
+          const dx = d.x - OWL_X;
+          const dy = d.y - e.owlY;
+          if (dx * dx + dy * dy < (OWL_RADIUS + 14) * (OWL_RADIUS + 14)) {
             d.taken = true;
-            triggerDeath();
+            soundFX.distractionBump();
+            setShake(true);
+            setTimeout(() => setShake(false), 200);
+
+            e.floatTexts.push({
+              x: OWL_X + 15,
+              y: e.owlY - 15,
+              text: "⚠️ ¡Distracción!",
+              color: "#f87171",
+              life: 1.1,
+            });
             break;
           }
         }
@@ -580,24 +717,30 @@ export default function VueloBuhoPage() {
         spawnPillarIfNeeded();
 
         // Limpiar objetos fuera de pantalla
-        e.pillars = e.pillars.filter((p) => p.x > -PILLAR_WIDTH - 20);
+        e.pillars = e.pillars.filter((p) => p.x > -PILLAR_WIDTH - 30);
         e.orbs = e.orbs.filter((o) => o.x > -40 && !o.taken);
         e.distractions = e.distractions.filter((d) => d.x > -40 && !d.taken);
       }
 
-      // Partículas (siempre se actualizan, incluso muerto, para que se vean caer)
+      // Partículas y animaciones secundarias
       e.feathers.forEach((f) => {
         f.x += f.vx * dt;
-        f.y += f.vy * dt + 40 * dt;
-        f.life -= dt * 1.2;
+        f.y += f.vy * dt + 30 * dt;
+        f.life -= dt * 1.1;
       });
       e.feathers = e.feathers.filter((f) => f.life > 0);
 
       e.bursts.forEach((b) => {
-        b.size += 60 * dt;
-        b.life -= dt * 2.2;
+        b.size += 50 * dt;
+        b.life -= dt * 2.0;
       });
       e.bursts = e.bursts.filter((b) => b.life > 0);
+
+      e.floatTexts.forEach((ft) => {
+        ft.y -= 35 * dt;
+        ft.life -= dt * 0.9;
+      });
+      e.floatTexts = e.floatTexts.filter((ft) => ft.life > 0);
 
       draw(ctx, dt);
       rafRef.current = requestAnimationFrame(step);
@@ -611,20 +754,39 @@ export default function VueloBuhoPage() {
     return () => cancelAnimationFrame(rafRef.current);
   }, [step]);
 
-  // Controles: click/touch/espacio
+  // Manejo de eventos de entrada (Teclado y Puntero/Táctil)
   useEffect(() => {
-    const handleKey = (ev: KeyboardEvent) => {
-      if (ev.code === "Space") {
+    const handleKeyDown = (ev: KeyboardEvent) => {
+      if (ev.code === "Space" || ev.code === "ArrowUp") {
         ev.preventDefault();
-        flap();
+        if (!isPointerDownRef.current) {
+          isPointerDownRef.current = true;
+          flap();
+        }
       }
     };
-    window.addEventListener("keydown", handleKey);
-    return () => window.removeEventListener("keydown", handleKey);
+
+    const handleKeyUp = (ev: KeyboardEvent) => {
+      if (ev.code === "Space" || ev.code === "ArrowUp") {
+        isPointerDownRef.current = false;
+      }
+    };
+
+    window.addEventListener("keydown", handleKeyDown);
+    window.addEventListener("keyup", handleKeyUp);
+    return () => {
+      window.removeEventListener("keydown", handleKeyDown);
+      window.removeEventListener("keyup", handleKeyUp);
+    };
   }, [flap]);
 
-  const handlePointer = () => {
+  const handlePointerDown = () => {
+    isPointerDownRef.current = true;
     flap();
+  };
+
+  const handlePointerUp = () => {
+    isPointerDownRef.current = false;
   };
 
   const handleRetry = () => {
@@ -633,17 +795,89 @@ export default function VueloBuhoPage() {
     setGameState("playing");
     setUiScore(0);
     setLastReward(null);
+    soundFX.startAmbientMusic();
+  };
+
+  const toggleSfx = () => {
+    const isM = soundFX.toggleSfx();
+    setSfxMuted(isM);
+    toast.info(isM ? "Efectos silenciados" : "Efectos activados 🔊");
+  };
+
+  const toggleMusic = () => {
+    const isM = soundFX.toggleMusic();
+    setMusicMuted(isM);
+    toast.info(isM ? "Música silenciada" : "Música ambiental activada 🎵");
   };
 
   return (
     <div style={{ display: "flex", flexDirection: "column", minHeight: "100vh", background: "#0b1120" }}>
-      <div className="main-header" style={{ marginLeft: -24, marginRight: -24, marginTop: -24, marginBottom: 24, padding: "16px 24px", background: "#1e293b", color: "white" }}>
-        <div className="font-display" style={{ fontSize: 18, fontWeight: 700 }}>ACADEMIA ESTOICA</div>
-        <div style={{ fontSize: 13, color: "#94a3b8" }}>Sala de Entrenamiento · El Vuelo del Búho</div>
+      <div
+        className="main-header"
+        style={{
+          marginLeft: -24,
+          marginRight: -24,
+          marginTop: -24,
+          marginBottom: 20,
+          padding: "16px 24px",
+          background: "#1e293b",
+          color: "white",
+          display: "flex",
+          justifyContent: "space-between",
+          alignItems: "center",
+        }}
+      >
+        <div>
+          <div className="font-display" style={{ fontSize: 18, fontWeight: 700 }}>ACADEMIA ESTOICA</div>
+          <div style={{ fontSize: 13, color: "#94a3b8" }}>Sala de Entrenamiento · El Vuelo del Búho</div>
+        </div>
+
+        {/* Controles rápidos de Audio */}
+        <div style={{ display: "flex", gap: 8 }}>
+          <button
+            onClick={toggleSfx}
+            title={sfxMuted ? "Activar Efectos" : "Silenciar Efectos"}
+            style={{
+              background: sfxMuted ? "rgba(239, 68, 68, 0.2)" : "rgba(255, 255, 255, 0.1)",
+              border: "1px solid rgba(255, 255, 255, 0.2)",
+              color: "white",
+              padding: "8px 12px",
+              borderRadius: 10,
+              cursor: "pointer",
+              display: "flex",
+              alignItems: "center",
+              gap: 6,
+              fontSize: 12,
+            }}
+          >
+            {sfxMuted ? <VolumeX size={16} color="#f87171" /> : <Volume2 size={16} color="#38bdf8" />}
+            <span>SFX</span>
+          </button>
+
+          <button
+            onClick={toggleMusic}
+            title={musicMuted ? "Activar Música" : "Silenciar Música"}
+            style={{
+              background: musicMuted ? "rgba(239, 68, 68, 0.2)" : "rgba(255, 255, 255, 0.1)",
+              border: "1px solid rgba(255, 255, 255, 0.2)",
+              color: "white",
+              padding: "8px 12px",
+              borderRadius: 10,
+              cursor: "pointer",
+              display: "flex",
+              alignItems: "center",
+              gap: 6,
+              fontSize: 12,
+            }}
+          >
+            <Music size={16} color={musicMuted ? "#f87171" : "#fbbf24"} />
+            <span>Música</span>
+          </button>
+        </div>
       </div>
 
-      <div style={{ padding: "0 24px" }}>
-        <Link href="/juegos" style={{ textDecoration: "none", display: "inline-flex", alignItems: "center", gap: 6, color: "#94a3b8", fontSize: 13, marginBottom: 16 }}>
+      <div style={{ padding: "0 24px", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+        <Link href="/juegos" style={{ textDecoration: "none", display: "inline-flex", alignItems: "center", gap: 6, color: "#94a3b8", fontSize: 13, marginBottom: 14 }}>
           ← Volver a los Juegos
         </Link>
       </div>
@@ -661,10 +895,10 @@ export default function VueloBuhoPage() {
         <style>{`
           @keyframes owlShake {
             0%, 100% { transform: translate(0,0); }
-            20% { transform: translate(-8px, 4px); }
-            40% { transform: translate(8px, -4px); }
-            60% { transform: translate(-5px, 3px); }
-            80% { transform: translate(5px, -3px); }
+            20% { transform: translate(-6px, 3px); }
+            40% { transform: translate(6px, -3px); }
+            60% { transform: translate(-4px, 2px); }
+            80% { transform: translate(4px, -2px); }
           }
         `}</style>
 
@@ -676,10 +910,13 @@ export default function VueloBuhoPage() {
             aspectRatio: `${W} / ${H}`,
             borderRadius: 24,
             overflow: "hidden",
-            boxShadow: "0 20px 60px rgba(0,0,0,0.5)",
+            boxShadow: "0 20px 60px rgba(0,0,0,0.55)",
             border: "3px solid #334155",
+            userSelect: "none",
           }}
-          onPointerDown={handlePointer}
+          onPointerDown={handlePointerDown}
+          onPointerUp={handlePointerUp}
+          onPointerLeave={handlePointerUp}
         >
           <canvas
             ref={canvasRef}
@@ -688,27 +925,54 @@ export default function VueloBuhoPage() {
             style={{ width: "100%", height: "100%", display: "block", touchAction: "none", cursor: "pointer" }}
           />
 
-          {/* HUD de puntaje */}
+          {/* HUD superior durante la partida */}
           {gameState === "playing" && (
-            <div
-              style={{
-                position: "absolute",
-                top: 16,
-                left: "50%",
-                transform: "translateX(-50%)",
-                fontFamily: "var(--font-display, serif)",
-                fontSize: 44,
-                fontWeight: 900,
-                color: "white",
-                textShadow: "0 2px 8px rgba(0,0,0,0.6), 0 0 20px rgba(0,0,0,0.4)",
-                pointerEvents: "none",
-              }}
-            >
-              {uiScore}
-            </div>
+            <>
+              {/* Puntaje */}
+              <div
+                style={{
+                  position: "absolute",
+                  top: 16,
+                  left: "50%",
+                  transform: "translateX(-50%)",
+                  fontFamily: "var(--font-display, serif)",
+                  fontSize: 44,
+                  fontWeight: 900,
+                  color: "white",
+                  textShadow: "0 2px 8px rgba(0,0,0,0.6), 0 0 20px rgba(0,0,0,0.4)",
+                  pointerEvents: "none",
+                }}
+              >
+                {uiScore}
+              </div>
+
+              {/* Indicador de Escudo Estoico */}
+              <div
+                style={{
+                  position: "absolute",
+                  top: 16,
+                  left: 16,
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 6,
+                  background: shieldActive ? "rgba(251,191,36,0.2)" : "rgba(100,116,139,0.3)",
+                  border: `1px solid ${shieldActive ? "rgba(251,191,36,0.6)" : "rgba(148,163,184,0.3)"}`,
+                  backdropFilter: "blur(4px)",
+                  padding: "6px 12px",
+                  borderRadius: 20,
+                  fontSize: 12,
+                  fontWeight: 700,
+                  color: shieldActive ? "#fbbf24" : "#94a3b8",
+                  pointerEvents: "none",
+                }}
+              >
+                <Shield size={14} color={shieldActive ? "#fbbf24" : "#94a3b8"} />
+                <span>{shieldActive ? "Escudo Listo" : "Escudo Usado"}</span>
+              </div>
+            </>
           )}
 
-          {/* Pantalla de inicio */}
+          {/* Pantalla de Inicio */}
           <AnimatePresence>
             {gameState === "start" && (
               <motion.div
@@ -718,8 +982,8 @@ export default function VueloBuhoPage() {
                 style={{
                   position: "absolute",
                   inset: 0,
-                  background: "rgba(15,23,42,0.72)",
-                  backdropFilter: "blur(2px)",
+                  background: "rgba(15,23,42,0.76)",
+                  backdropFilter: "blur(3px)",
                   display: "flex",
                   flexDirection: "column",
                   alignItems: "center",
@@ -729,32 +993,58 @@ export default function VueloBuhoPage() {
                   color: "white",
                 }}
               >
-                <div style={{ fontSize: 56, marginBottom: 8 }}>🦉</div>
-                <h2 className="font-display" style={{ fontSize: 26, fontWeight: 900, marginBottom: 8 }}>
+                <div style={{ fontSize: 54, marginBottom: 6 }}>🦉</div>
+                <h2 className="font-display" style={{ fontSize: 26, fontWeight: 900, marginBottom: 8, color: "#f8fafc" }}>
                   El Vuelo del Búho
                 </h2>
-                <p style={{ fontSize: 13, color: "#cbd5e1", lineHeight: 1.6, marginBottom: 18, maxWidth: 280 }}>
-                  Toca, haz clic o presiona <strong>espacio</strong> para aletear entre las columnas del templo.
-                  Recoge <strong>📖 pergaminos</strong> de sabiduría y esquiva las distracciones.
-                </p>
+
                 <div
                   style={{
-                    background: "rgba(251,191,36,0.15)",
-                    border: "1px solid rgba(251,191,36,0.4)",
-                    borderRadius: 14,
-                    padding: "10px 18px",
-                    fontSize: 13,
-                    fontWeight: 700,
-                    color: "#fbbf24",
+                    background: "rgba(30, 41, 59, 0.7)",
+                    border: "1px solid rgba(255, 255, 255, 0.1)",
+                    borderRadius: 16,
+                    padding: "12px 16px",
+                    maxWidth: 290,
+                    marginBottom: 16,
+                    textAlign: "left",
+                    fontSize: 12.5,
+                    color: "#cbd5e1",
+                    lineHeight: 1.5,
                   }}
                 >
-                  ¡Toca para empezar a volar!
+                  <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 6 }}>
+                    <span>👆</span>
+                    <span><strong>Clic / Espacio:</strong> Aletear suavemente.</span>
+                  </div>
+                  <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 6 }}>
+                    <span>🪽</span>
+                    <span><strong>Mantén presionado:</strong> Planear y frenar caída.</span>
+                  </div>
+                  <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                    <span>🛡️</span>
+                    <span><strong>Escudo Estoico:</strong> Te salva de 1 choque.</span>
+                  </div>
+                </div>
+
+                <div
+                  style={{
+                    background: "linear-gradient(135deg, #fbbf24, #d97706)",
+                    color: "#0f172a",
+                    borderRadius: 14,
+                    padding: "12px 24px",
+                    fontSize: 14,
+                    fontWeight: 800,
+                    boxShadow: "0 4px 14px rgba(245, 158, 11, 0.35)",
+                    cursor: "pointer",
+                  }}
+                >
+                  ¡Toca para comenzar a volar! 🚀
                 </div>
               </motion.div>
             )}
           </AnimatePresence>
 
-          {/* Pantalla de derrota */}
+          {/* Pantalla de Derrota / Reflexión */}
           <AnimatePresence>
             {gameState === "dead" && (
               <motion.div
@@ -764,8 +1054,8 @@ export default function VueloBuhoPage() {
                 style={{
                   position: "absolute",
                   inset: 0,
-                  background: "rgba(15,23,42,0.82)",
-                  backdropFilter: "blur(3px)",
+                  background: "rgba(15,23,42,0.85)",
+                  backdropFilter: "blur(4px)",
                   display: "flex",
                   flexDirection: "column",
                   alignItems: "center",
@@ -779,26 +1069,26 @@ export default function VueloBuhoPage() {
                   initial={{ scale: 0.7, y: -10 }}
                   animate={{ scale: 1, y: 0 }}
                   transition={{ type: "spring", stiffness: 260, damping: 16 }}
-                  style={{ fontSize: 44, marginBottom: 4 }}
+                  style={{ fontSize: 42, marginBottom: 4 }}
                 >
                   🪶
                 </motion.div>
                 <div style={{ fontSize: 13, color: "#94a3b8", fontWeight: 700, textTransform: "uppercase", letterSpacing: 1 }}>
                   Intento #{attempt}
                 </div>
-                <div className="font-display" style={{ fontSize: 40, fontWeight: 900, color: "#fbbf24", margin: "4px 0 2px" }}>
+                <div className="font-display" style={{ fontSize: 42, fontWeight: 900, color: "#fbbf24", margin: "4px 0 2px" }}>
                   {uiScore}
                 </div>
-                <div style={{ fontSize: 12, color: "#64748b", marginBottom: 14 }}>
+                <div style={{ fontSize: 12, color: "#64748b", marginBottom: 12 }}>
                   Mejor puntaje: {bestScore}
                 </div>
 
-                <p style={{ fontSize: 12.5, color: "#e2e8f0", fontStyle: "italic", lineHeight: 1.6, maxWidth: 290, marginBottom: 16 }}>
+                <p style={{ fontSize: 12.5, color: "#e2e8f0", fontStyle: "italic", lineHeight: 1.5, maxWidth: 290, marginBottom: 14 }}>
                   {quote}
                 </p>
 
                 {lastReward && (
-                  <div style={{ display: "flex", gap: 8, marginBottom: 18, flexWrap: "wrap", justifyContent: "center" }}>
+                  <div style={{ display: "flex", gap: 8, marginBottom: 16, flexWrap: "wrap", justifyContent: "center" }}>
                     <span style={{ background: "linear-gradient(135deg,#fbbf24,#d97706)", color: "#1e293b", padding: "5px 12px", borderRadius: 20, fontSize: 12, fontWeight: 800 }}>
                       🌟 +{lastReward.xp} XP
                     </span>
@@ -852,7 +1142,7 @@ export default function VueloBuhoPage() {
         </div>
 
         <p style={{ color: "#64748b", fontSize: 12, marginTop: 14, textAlign: "center", maxWidth: 400 }}>
-          🏅 Mejor puntaje de esta sesión: <strong style={{ color: "#e2e8f0" }}>{bestScore}</strong>
+          💡 <em>Tip Estoico:</em> Mantén pulsado para abrir las alas y planear suavemente entre los capiteles.
         </p>
       </div>
     </div>

@@ -1,0 +1,35 @@
+name: Supabase Keep-Alive (Evitar Pausa Automática)
+
+on:
+  schedule:
+    # Se ejecuta automáticamente todos los Lunes, Miércoles y Viernes a las 12:00 UTC
+    - cron: '0 12 * * 1,3,5'
+  workflow_dispatch: # Permite ejecutar la acción manualmente con 1 clic desde GitHub
+
+jobs:
+  keep-alive:
+    name: Ping Actividad Base de Datos
+    runs-on: ubuntu-latest
+    steps:
+      - name: Realizar consulta SQL Keep-Alive a Supabase
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL || 'https://yiklrxdqwchulthfbdgb.supabase.co' }}
+          SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_ANON_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inlpa2xyeGRxd2NodWx0aGZiZGdiIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzM3ODcyNDcsImV4cCI6MjA4OTM2MzI0N30.UM5KfbikwWl5410Rp0l0KLG-IevtoiB37Nu2YjOFiMM' }}
+        run: |
+          echo "Enviando ping de actividad a Supabase..."
+          
+          RESPONSE=$(curl -s -w "\nHTTP_STATUS:%{http_code}" -X GET "${SUPABASE_URL}/rest/v1/shop_items?select=id,name&limit=1" \
+            -H "apikey: ${SUPABASE_ANON_KEY}" \
+            -H "Authorization: Bearer ${SUPABASE_ANON_KEY}")
+          
+          BODY=$(echo "$RESPONSE" | sed '$d')
+          STATUS=$(echo "$RESPONSE" | grep "HTTP_STATUS" | cut -d':' -f2)
+          
+          echo "Código HTTP recibido: $STATUS"
+          echo "Datos devueltos: $BODY"
+          
+          if [ "$STATUS" -eq 200 ]; then
+            echo "✅ ¡Consulta exitosa! La base de datos de Supabase permanece activa."
+          else
+            echo "⚠️ La solicitud respondió con código $STATUS pero generó tráfico de red en el servidor."
+          fi
